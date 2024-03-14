@@ -27,6 +27,7 @@ func (s *SmartContract) LiveTest() string {
 // Creation
 // =============================================================================
 
+// Creates a ballot tied to a voter and an election if the voter does not have an existing ballot
 func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, voterID string, electionID string) error {
 	// Check if voter has an existing ballot
 	voter, err := queryAsset[Voter](ctx, voterID)
@@ -75,15 +76,15 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 }
 
 func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterface, candidate Candidate) error {
-	return createAsset[Candidate](ctx, candidate.CandidateID, candidate, "candidate")
+	return createAsset(ctx, candidate.CandidateID, candidate, "candidate")
 }
 
 func (s *SmartContract) CreateElection(ctx contractapi.TransactionContextInterface, election Election) error {
-	return createAsset[Election](ctx, election.ElectionID, election, "election")
+	return createAsset(ctx, election.ElectionID, election, "election")
 }
 
 func (s *SmartContract) CreateVoter(ctx contractapi.TransactionContextInterface, voter Voter) error {
-	return createAsset[Voter](ctx, voter.VoterID, voter, "voter")
+	return createAsset(ctx, voter.VoterID, voter, "voter")
 }
 
 func createAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string, createdAsset T, assetType string) error {
@@ -198,10 +199,22 @@ func queryAssetsByType[T ITYPES](ctx contractapi.TransactionContextInterface) ([
 // Update
 // =============================================================================
 
+// Updates a ballot with the specified updated state.
+// The ballot cannot be updated if the election is not active or if the ballot has already been cast.
 func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface, updatedBallot Ballot) error {
 	currentBallot, err := queryAsset[Ballot](ctx, updatedBallot.BallotID)
 	if err != nil {
 		return err
+	}
+
+	// Allow ballot to be updated if within voting window of an election
+	election, err := queryAsset[Election](ctx, currentBallot.ElectionID)
+	if err != nil {
+		return err
+	}
+
+	if !election.IsActive() {
+		return fmt.Errorf("unable to update ballot %s while election %s is not active", currentBallot.BallotID, election.ElectionID)
 	}
 
 	if currentBallot.Voted {
@@ -213,15 +226,15 @@ func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface
 }
 
 func (s *SmartContract) UpdateCandidate(ctx contractapi.TransactionContextInterface, updatedCandidate Candidate) error {
-	return updateAsset[Candidate](ctx, updatedCandidate.CandidateID, updatedCandidate)
+	return updateAsset(ctx, updatedCandidate.CandidateID, updatedCandidate)
 }
 
 func (s *SmartContract) UpdateElection(ctx contractapi.TransactionContextInterface, updatedElection Election) error {
-	return updateAsset[Election](ctx, updatedElection.ElectionID, updatedElection)
+	return updateAsset(ctx, updatedElection.ElectionID, updatedElection)
 }
 
 func (s *SmartContract) UpdateVoter(ctx contractapi.TransactionContextInterface, updatedVoter Voter) error {
-	return updateAsset[Voter](ctx, updatedVoter.VoterID, updatedVoter)
+	return updateAsset(ctx, updatedVoter.VoterID, updatedVoter)
 }
 
 func updateAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string, updatedAsset T) error {

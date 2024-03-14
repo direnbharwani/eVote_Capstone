@@ -42,6 +42,8 @@ func (b *BioData) EligibleToVote() bool {
 // Election
 // =============================================================================
 
+// Defines an election
+// Asset ID for Elections are prefixed with e-
 type Election struct {
 	Candidates []Candidate `json:"Candidates"`
 	ElectionID string      `json:"ElectionID"`
@@ -70,6 +72,7 @@ func (e *Election) IsActive() bool {
 // =============================================================================
 
 // Defines a electoral candidate
+// Asset ID for Candidates are prefixed with c-
 type Candidate struct {
 	BioData     BioData `json:"BioData"`
 	CandidateID string  `json:"CandidateID"`
