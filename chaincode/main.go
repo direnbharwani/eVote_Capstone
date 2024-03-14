@@ -1,19 +1,19 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	chaincode "github.com/direnbharwani/eVote_Capstone/src"
 
-	"github.com/google/uuid"
+	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
 func main() {
-
-	randomUUID, err := uuid.NewV7()
+	eVoteSmartContract := new(chaincode.SmartContract)
+	chaincode, err := contractapi.NewChaincode(eVoteSmartContract)
 	if err != nil {
-		log.Fatal(err)
+		panic(err.Error())
 	}
 
-	var ballotID string = "b-" + randomUUID.String()
-	fmt.Println(ballotID)
+	if err = chaincode.Start(); err != nil {
+		panic(err.Error())
+	}
 }

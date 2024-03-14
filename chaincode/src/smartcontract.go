@@ -62,13 +62,11 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 	// Update Voter with new BallotID
 	voter.BallotID = newBallot.BallotID
 
-	err = createAsset(ctx, newBallot.BallotID, newBallot, "ballot")
-	if err != nil {
+	if err = createAsset(ctx, newBallot.BallotID, newBallot, "ballot"); err != nil {
 		return err
 	}
 
-	err = updateAsset(ctx, voterID, voter)
-	if err != nil {
+	if err = updateAsset(ctx, voterID, voter); err != nil {
 		return err
 	}
 
@@ -101,8 +99,7 @@ func createAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 		return err
 	}
 
-	err = ctx.GetStub().PutState(key, createdData)
-	if err != nil {
+	if err = ctx.GetStub().PutState(key, createdData); err != nil {
 		return fmt.Errorf("unable to interact with world state: %v", err)
 	}
 
@@ -157,8 +154,7 @@ func queryAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key strin
 		return emptyObject, fmt.Errorf("cannot read world state with key %s", key)
 	}
 
-	err = json.Unmarshal(assetState, &result)
-	if err != nil {
+	if err = json.Unmarshal(assetState, &result); err != nil {
 		return emptyObject, err
 	}
 
@@ -184,8 +180,7 @@ func queryAssetsByType[T ITYPES](ctx contractapi.TransactionContextInterface) ([
 			return nil, err
 		}
 
-		err = json.Unmarshal(queryResponse.Value, &result)
-		if err != nil {
+		if err = json.Unmarshal(queryResponse.Value, &result); err != nil {
 			return nil, err
 		}
 
@@ -251,8 +246,7 @@ func updateAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 		return err
 	}
 
-	err = ctx.GetStub().PutState(key, bytes)
-	if err != nil {
+	if err = ctx.GetStub().PutState(key, bytes); err != nil {
 		return fmt.Errorf("unable to interact with world state: %v", err)
 	}
 
