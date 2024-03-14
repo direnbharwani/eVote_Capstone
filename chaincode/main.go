@@ -1,18 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"time"
+
+	"github.com/google/uuid"
 )
 
 func main() {
 
-	birthdayString := "1996-08-03"
-	birthday, err := time.Parse(time.DateOnly, birthdayString)
+	randomUUID, err := uuid.NewV7()
 	if err != nil {
-		log.Printf("Failed to parse birthday: %s\n", err)
+		log.Fatal(err)
 	}
 
-	age := time.Now().Year() - birthday.Year()
-	log.Println("Age: ", age)
+	var ballotID string = "b-" + randomUUID.String()
+	fmt.Println(ballotID)
 }
