@@ -47,6 +47,7 @@ func (b *BioData) EligibleToVote() bool {
 type Election struct {
 	Candidates []Candidate `json:"Candidates"`
 	ElectionID string      `json:"ElectionID"`
+	Name       string      `json:"Name"`
 	EndTime    string      `json:"EndTime"`
 	StartTime  string      `json:"StartTime"`
 }
