@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
@@ -27,50 +26,8 @@ func (s *SmartContract) LiveTest() string {
 // Creation
 // =============================================================================
 
-// Creates a ballot tied to a voter and an election if the voter does not have an existing ballot
-func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, voterID string, electionID string) error {
-	// Check if voter has an existing ballot
-	voter, err := queryAsset[Voter](ctx, voterID)
-	if err != nil {
-		return err
-	}
-
-	if voter.BallotID != "" { // existing ballot
-		return fmt.Errorf("voter %s has an existing ballot %s", voterID, voter.BallotID)
-	}
-
-	// Get election state
-	election, err := queryAsset[Election](ctx, electionID)
-	if err != nil {
-		return err
-	}
-
-	// Create Ballot
-	uuid, err := uuid.NewV7()
-	if err != nil {
-		return err
-	}
-
-	newBallot := Ballot{
-		BallotID:   "b-" + uuid.String(),
-		Candidates: election.Candidates,
-		ElectionID: electionID,
-		VoterID:    voterID,
-		Voted:      false,
-	}
-
-	// Update Voter with new BallotID
-	voter.BallotID = newBallot.BallotID
-
-	if err = createAsset(ctx, newBallot.BallotID, newBallot, "ballot"); err != nil {
-		return err
-	}
-
-	if err = updateAsset(ctx, voterID, voter); err != nil {
-		return err
-	}
-
-	return nil
+func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, ballot Ballot) error {
+	return createAsset(ctx, ballot.BallotID, ballot, "ballot")
 }
 
 func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterface, candidate Candidate) error {

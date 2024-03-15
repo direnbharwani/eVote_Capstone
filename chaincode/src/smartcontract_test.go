@@ -14,6 +14,16 @@ import (
 // Mock Objects
 // =============================================================================
 
+func MockBallot() *chaincode.Ballot {
+	return &chaincode.Ballot{
+		BallotID:   "b-0",
+		Candidates: []chaincode.Candidate{*MockCandidate()},
+		ElectionID: MockElection().ElectionID,
+		VoterID:    MockVoter().VoterID,
+		Voted:      false,
+	}
+}
+
 func MockCandidate() *chaincode.Candidate {
 	mockCandidateBioData := chaincode.BioData{
 		Birthday: "01-01-2024",
@@ -60,6 +70,23 @@ func MockVoter() *chaincode.Voter {
 // Creation Tests
 // =============================================================================
 
+func TestCreateBallot(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
+
+	// Mocks for Interfaces
+	mockStub := &mocks.ChaincodeStubInterface{}
+	mockCtx := &mocks.TransactionContextInterface{}
+
+	mockCtx.On("GetStub").Return(mockStub)
+
+	mockStub.On("GetState", "b-0").Return(nil, nil)
+	mockStub.On("PutState", "b-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
+
+	// Test
+	err := smartContract.CreateBallot(mockCtx, *MockBallot())
+	require.NoError(t, err)
+}
+
 func TestCreateCandidate(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
@@ -67,10 +94,10 @@ func TestCreateCandidate(t *testing.T) {
 	mockStub := &mocks.ChaincodeStubInterface{}
 	mockCtx := &mocks.TransactionContextInterface{}
 
+	mockCtx.On("GetStub").Return(mockStub)
+
 	mockStub.On("GetState", "c-0").Return(nil, nil)
 	mockStub.On("PutState", "c-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
-
-	mockCtx.On("GetStub").Return(mockStub)
 
 	// Test
 	err := smartContract.CreateCandidate(mockCtx, *MockCandidate())
