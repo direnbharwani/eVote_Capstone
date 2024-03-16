@@ -2,7 +2,9 @@ package chaincode_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"reflect"
 	"testing"
 
 	chaincode "github.com/direnbharwani/eVote_Capstone/src"
@@ -16,25 +18,41 @@ import (
 // Creation Tests
 // =============================================================================
 
-func TestCreateBallot(t *testing.T) {
+func TestCreation(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
 	// Mocks
 	mockStub := &mocks.ChaincodeStubInterface{}
 	mockCtx := &mocks.TransactionContextInterface{}
 
-	_, mockBallotData := MockBallot()
-	_, mockElectionData := MockElection()
-
 	mockCtx.On("GetStub").Return(mockStub)
 
-	mockStub.On("GetState", "b-0").Return(nil, nil)
-	mockStub.On("GetState", "e-0").Return(mockElectionData, nil)
-	mockStub.On("PutState", "b-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
-
 	t.Run("successfully create ballot", func(t *testing.T) {
+		_, mockBallotData := MockBallot()
+		_, mockElectionData := MockElection()
+
+		mockStub.On("GetState", "b-0").Return(nil, nil)
+		mockStub.On("GetState", "e-0").Return(mockElectionData, nil)
+		mockStub.On("PutState", "b-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
+
 		err := smartContract.CreateBallot(mockCtx, string(mockBallotData))
 		require.NoError(t, err)
+	})
+
+	t.Run("failed to create invalid ballot", func(t *testing.T) {
+		// Modify ballot for fail case
+		mockBallot, _ := MockBallot()
+		mockBallot.BallotID = ""
+		mockBallotData, err := json.Marshal(mockBallot)
+		if err != nil {
+			t.Error(err)
+		}
+
+		// We don't need to mock GetState for the ballotID since it will fail before reaching createAsset
+		expectedError := fmt.Sprintf("%s is invalid! %s", reflect.TypeOf(*mockBallot).String(), "missing BallotID")
+
+		err = smartContract.CreateBallot(mockCtx, string(mockBallotData))
+		require.EqualError(t, err, expectedError)
 	})
 }
 

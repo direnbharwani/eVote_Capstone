@@ -22,12 +22,12 @@ type ITYPES interface {
 // =============================================================================
 
 type ObjectValidationError struct {
-	s    string
-	Type string
+	Message string
+	Type    string
 }
 
 func (e *ObjectValidationError) Error() string {
-	return fmt.Sprintf("%s is invalid! %s", e.Type, e.s)
+	return fmt.Sprintf("%s is invalid! %s", e.Type, e.Message)
 }
 
 // =============================================================================
