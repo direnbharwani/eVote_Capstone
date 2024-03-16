@@ -21,13 +21,13 @@ import (
 func TestCreation(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	// Mocks
-	mockStub := &mocks.ChaincodeStubInterface{}
-	mockCtx := &mocks.TransactionContextInterface{}
+	t.Run("Successfully create ballot", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
 
-	mockCtx.On("GetStub").Return(mockStub)
+		mockCtx.On("GetStub").Return(mockStub)
 
-	t.Run("successfully create ballot", func(t *testing.T) {
 		_, mockBallotData := MockBallot()
 		_, mockElectionData := MockElection()
 
@@ -35,11 +35,36 @@ func TestCreation(t *testing.T) {
 		mockStub.On("GetState", "e-0").Return(mockElectionData, nil)
 		mockStub.On("PutState", "b-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
 
+		// Test
 		err := smartContract.CreateBallot(mockCtx, string(mockBallotData))
 		require.NoError(t, err)
 	})
 
-	t.Run("failed to create invalid ballot", func(t *testing.T) {
+	t.Run("Fail to create existing ballot", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		_, mockBallotData := MockBallot()
+		_, mockElectionData := MockElection()
+
+		mockStub.On("GetState", "e-0").Return(mockElectionData, nil)
+		mockStub.On("GetState", "b-0").Return(mockBallotData, nil)
+
+		// Test
+		err := smartContract.CreateBallot(mockCtx, string(mockBallotData))
+		require.EqualError(t, err, "ballot: b-0 already created")
+	})
+
+	t.Run("Fail to create invalid ballot", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
 		// Modify ballot for fail case
 		mockBallot, _ := MockBallot()
 		mockBallot.BallotID = ""
@@ -48,11 +73,27 @@ func TestCreation(t *testing.T) {
 			t.Error(err)
 		}
 
+		// Test
 		// We don't need to mock GetState for the ballotID since it will fail before reaching createAsset
 		expectedError := fmt.Sprintf("%s is invalid! %s", reflect.TypeOf(*mockBallot).String(), "missing BallotID")
 
 		err = smartContract.CreateBallot(mockCtx, string(mockBallotData))
 		require.EqualError(t, err, expectedError)
+	})
+
+	t.Run("Fail to create ballot for non-existent election", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		_, mockBallotData := MockBallot()
+		mockStub.On("GetState", "e-0").Return(nil, nil)
+
+		// Test
+		err := smartContract.CreateBallot(mockCtx, string(mockBallotData))
+		require.EqualError(t, err, "cannot read world state with key e-0")
 	})
 }
 
@@ -111,71 +152,48 @@ func TestCreation(t *testing.T) {
 // Query Tests
 // =============================================================================
 
-// func TestQueryBallot(t *testing.T) {
-// 	smartContract := chaincode.SmartContract{}
+func TestQuery(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
 
-// 	// Mocks for Interfaces
-// 	mockStub := &mocks.ChaincodeStubInterface{}
-// 	mockCtx := &mocks.TransactionContextInterface{}
+	t.Run("successfully query ballot", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
 
-// 	mockCtx.On("GetStub").Return(mockStub)
+		mockCtx.On("GetStub").Return(mockStub)
 
-// 	mockBallot := *MockBallot()
-// 	mockBallotData, err := json.Marshal(mockBallot)
-// 	if err != nil {
-// 		t.Error(err)
-// 	}
-// 	mockStub.On("GetState", mockBallot.BallotID).Return(mockBallotData, nil)
+		mockBallot, mockBallotData := MockBallot()
 
-// 	// Test
-// 	want := mockBallot
+		mockStub.On("GetState", "b-0").Return(mockBallotData, nil)
 
-// 	got, err := smartContract.QueryBallot(mockCtx, mockBallot.BallotID)
-// 	require.NoError(t, err)
+		// Test
+		ballot, err := smartContract.QueryBallot(mockCtx, mockBallot.BallotID)
+		if err != nil {
+			t.Error(err)
+		}
+		require.Equal(t, *mockBallot, ballot)
+	})
 
-// 	assertBallotEquality(t, got, want)
-// }
+	t.Run("fail to query non-existent ballot", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockBallot, _ := MockBallot()
+
+		mockStub.On("GetState", "b-0").Return(nil, nil)
+
+		// Test
+		_, err := smartContract.QueryBallot(mockCtx, mockBallot.BallotID)
+		require.EqualError(t, err, "cannot read world state with key b-0")
+	})
+}
 
 // =============================================================================
 // Update Tests
 // =============================================================================
-
-// =============================================================================
-// Assertion Helpers
-// =============================================================================
-
-// Defined due to array of custom objects
-func assertBallotEquality(t testing.TB, lhs chaincode.Ballot, rhs chaincode.Ballot) {
-	if lhs.BallotID != rhs.BallotID {
-		t.Errorf("got %v want %v", lhs, rhs)
-	}
-
-	if lhs.ElectionID != rhs.ElectionID {
-		t.Errorf("got %v want %v", lhs, rhs)
-	}
-
-	if lhs.VoterID != rhs.VoterID {
-		t.Errorf("got %v want %v", lhs, rhs)
-	}
-
-	if lhs.Voted != rhs.Voted {
-		t.Errorf("got %v want %v", lhs, rhs)
-	}
-
-	// Compare all candidates
-	if len(lhs.Candidates) != len(rhs.Candidates) {
-		t.Errorf("got %v want %v", lhs, rhs)
-	}
-
-	for i, candidate := range lhs.Candidates {
-		if candidate != rhs.Candidates[i] {
-			t.Errorf("got %v want %v", lhs, rhs)
-		}
-	}
-}
-
-func assertElectionEquality(t testing.TB, lhs chaincode.Election, rhs chaincode.Election) {
-}
 
 // =============================================================================
 // Mock Objects
@@ -198,12 +216,20 @@ func MockBallot() (*chaincode.Ballot, []byte) {
 	return &mock, mockData
 }
 
-func MockCandidate() *chaincode.Candidate {
-	return &chaincode.Candidate{
+func MockCandidate() (*chaincode.Candidate, []byte) {
+	mock := chaincode.Candidate{
 		CandidateID: "c-0",
 		Count:       0,
+		ElectionID:  "e-0",
 		Name:        "mockCandidate",
 	}
+
+	mockData, err := json.Marshal(mock)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &mock, mockData
 }
 
 func MockElection() (*chaincode.Election, []byte) {
@@ -223,9 +249,16 @@ func MockElection() (*chaincode.Election, []byte) {
 	return &mock, mockData
 }
 
-func MockVoter() *chaincode.Voter {
-	return &chaincode.Voter{
+func MockVoter() (*chaincode.Voter, []byte) {
+	mock := chaincode.Voter{
 		VoterID:  "v-0",
 		BallotID: "",
 	}
+
+	mockData, err := json.Marshal(mock)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &mock, mockData
 }
