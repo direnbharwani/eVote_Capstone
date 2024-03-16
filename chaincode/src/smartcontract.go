@@ -7,18 +7,15 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
-// ITYPES is a union set type constraint
-// that enforces only allowable types are passed to smart contract methods.
-type ITYPES interface {
-	Ballot | Candidate | Election | Voter
-}
-
 type SmartContract struct {
 	contractapi.Contract
 }
 
 // Function to test if the chaincode has been successfully deployed
 func (s *SmartContract) LiveTest() string {
+	// TODO: return a more verbose JSON with information
+	// Info: Name, Version, Time of Invocation, Status of SmartContract
+
 	return "Hello EVote V1!"
 }
 
@@ -26,19 +23,65 @@ func (s *SmartContract) LiveTest() string {
 // Creation
 // =============================================================================
 
-func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, ballot Ballot) error {
+// Creates a ballot as an asset on the blockchain
+// data must contain BallotID, VoterID & ElectionID
+func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, data string) error {
+	ballot, err := ParseJSON[Ballot](data)
+	if err != nil {
+		return err
+	}
+
+	election, err := queryAsset[Election](ctx, ballot.ElectionID)
+	if err != nil {
+		return err
+	}
+
+	ballot.Candidates = election.Candidates
+	ballot.Voted = false
+
 	return createAsset(ctx, ballot.BallotID, ballot, "ballot")
 }
 
-func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterface, candidate Candidate) error {
-	return createAsset(ctx, candidate.CandidateID, candidate, "candidate")
+// Creates a candidate as an asset on the blockchain
+// data must contain CandidateID & ElectionID
+func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterface, data string) error {
+	candidate, err := ParseJSON[Candidate](data)
+	if err != nil {
+		return err
+	}
+
+	candidate.Count = 0
+	if err := createAsset(ctx, candidate.CandidateID, candidate, "candidate"); err != nil {
+		return err
+	}
+
+	// Update election with candidate
+	election, err := queryAsset[Election](ctx, candidate.ElectionID)
+	if err != nil {
+		return err
+	}
+
+	election.Candidates = append(election.Candidates, candidate)
+	return updateAsset(ctx, election.ElectionID, election)
 }
 
-func (s *SmartContract) CreateElection(ctx contractapi.TransactionContextInterface, election Election) error {
+func (s *SmartContract) CreateElection(ctx contractapi.TransactionContextInterface, data string) error {
+	election, err := ParseJSON[Election](data)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Sync by fetching all candidates and taking ones with matching electionIDs
+
 	return createAsset(ctx, election.ElectionID, election, "election")
 }
 
-func (s *SmartContract) CreateVoter(ctx contractapi.TransactionContextInterface, voter Voter) error {
+func (s *SmartContract) CreateVoter(ctx contractapi.TransactionContextInterface, data string) error {
+	voter, err := ParseJSON[Voter](data)
+	if err != nil {
+		return err
+	}
+
 	return createAsset(ctx, voter.VoterID, voter, "voter")
 }
 
@@ -153,7 +196,12 @@ func queryAssetsByType[T ITYPES](ctx contractapi.TransactionContextInterface) ([
 
 // Updates a ballot with the specified updated state.
 // The ballot cannot be updated if the election is not active or if the ballot has already been cast.
-func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface, updatedBallot Ballot) error {
+func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface, updatedData string) error {
+	updatedBallot, err := ParseJSON[Ballot](updatedData)
+	if err != nil {
+		return err
+	}
+
 	currentBallot, err := queryAsset[Ballot](ctx, updatedBallot.BallotID)
 	if err != nil {
 		return err
@@ -164,7 +212,6 @@ func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface
 	if err != nil {
 		return err
 	}
-
 	if !election.IsActive() {
 		return fmt.Errorf("unable to update ballot %s while election %s is not active", currentBallot.BallotID, election.ElectionID)
 	}
@@ -174,18 +221,33 @@ func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface
 	}
 
 	updatedBallot.Voted = true
-	return updateAsset[Ballot](ctx, updatedBallot.BallotID, updatedBallot)
+	return updateAsset(ctx, updatedBallot.BallotID, updatedBallot)
 }
 
-func (s *SmartContract) UpdateCandidate(ctx contractapi.TransactionContextInterface, updatedCandidate Candidate) error {
+func (s *SmartContract) UpdateCandidate(ctx contractapi.TransactionContextInterface, updatedData string) error {
+	updatedCandidate, err := ParseJSON[Candidate](updatedData)
+	if err != nil {
+		return err
+	}
+
 	return updateAsset(ctx, updatedCandidate.CandidateID, updatedCandidate)
 }
 
-func (s *SmartContract) UpdateElection(ctx contractapi.TransactionContextInterface, updatedElection Election) error {
+func (s *SmartContract) UpdateElection(ctx contractapi.TransactionContextInterface, updatedData string) error {
+	updatedElection, err := ParseJSON[Election](updatedData)
+	if err != nil {
+		return err
+	}
+
 	return updateAsset(ctx, updatedElection.ElectionID, updatedElection)
 }
 
-func (s *SmartContract) UpdateVoter(ctx contractapi.TransactionContextInterface, updatedVoter Voter) error {
+func (s *SmartContract) UpdateVoter(ctx contractapi.TransactionContextInterface, updatedData string) error {
+	updatedVoter, err := ParseJSON[Voter](updatedData)
+	if err != nil {
+		return err
+	}
+
 	return updateAsset(ctx, updatedVoter.VoterID, updatedVoter)
 }
 

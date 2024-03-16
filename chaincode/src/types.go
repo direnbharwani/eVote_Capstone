@@ -1,41 +1,33 @@
 package chaincode
 
 import (
+	"fmt"
 	"log"
+	"reflect"
 	"time"
 )
 
-// =============================================================================
-// BioData
-// =============================================================================
+// ITYPES is a union set type constraint
+// that enforces only allowable types are passed to smart contract methods.
+type ITYPES interface {
+	Ballot | Candidate | Election | Voter
 
-// BioData for a citizen
-type BioData struct {
-	Birthday string `json:"Birthday"`
-	DID      string `json:"DID"`
-	Name     string `json:"Name"`
-	NRIC     string `json:"NRIC"`
-	Sex      string `json:"Sex"`
+	// Methods
+	// Type() string
+	IsValid() error
 }
 
-func (b *BioData) GetAge() int {
-	birthday, err := time.Parse(time.DateOnly, b.Birthday)
-	if err != nil {
-		log.Printf("Failed to parse Birthday for %s: %s", b.DID, err.Error())
-	}
+// =============================================================================
+// Errors
+// =============================================================================
 
-	now := time.Now()
-	age := now.Year() - birthday.Year()
-
-	// Modify age if birthday has not been reached
-	if now.Month() < birthday.Month() || (now.Month() == birthday.Month() && now.Day() < birthday.Day()) {
-		age--
-	}
-	return age
+type ObjectValidationError struct {
+	s    string
+	Type string
 }
 
-func (b *BioData) EligibleToVote() bool {
-	return b.GetAge() < 21
+func (e *ObjectValidationError) Error() string {
+	return fmt.Sprintf("%s is invalid! %s", e.Type, e.s)
 }
 
 // =============================================================================
@@ -47,12 +39,30 @@ func (b *BioData) EligibleToVote() bool {
 type Election struct {
 	Candidates []Candidate `json:"Candidates"`
 	ElectionID string      `json:"ElectionID"`
-	Name       string      `json:"Name"`
 	EndTime    string      `json:"EndTime"`
+	Name       string      `json:"Name"`
 	StartTime  string      `json:"StartTime"`
 }
 
-func (e *Election) IsActive() bool {
+func (e Election) IsValid() error {
+	objectType := reflect.TypeOf(e).String()
+
+	if e.ElectionID == "" {
+		return &ObjectValidationError{"missing ElectionID", objectType}
+	}
+
+	if _, err := time.Parse(time.DateTime, e.StartTime); err != nil {
+		return &ObjectValidationError{err.Error(), objectType}
+	}
+
+	if _, err := time.Parse(time.DateTime, e.EndTime); err != nil {
+		return &ObjectValidationError{err.Error(), objectType}
+	}
+
+	return nil
+}
+
+func (e Election) IsActive() bool {
 	now := time.Now()
 
 	start, err := time.Parse(time.DateTime, e.StartTime)
@@ -75,9 +85,24 @@ func (e *Election) IsActive() bool {
 // Defines a electoral candidate
 // Asset ID for Candidates are prefixed with c-
 type Candidate struct {
-	BioData     BioData `json:"BioData"`
-	CandidateID string  `json:"CandidateID"`
-	Count       uint64  `json:"Count"`
+	CandidateID string `json:"CandidateID"`
+	Count       uint64 `json:"Count"`
+	ElectionID  string `json:"ElectionID"`
+	Name        string `json:"Name"`
+}
+
+func (c Candidate) IsValid() error {
+	objectType := reflect.TypeOf(c).String()
+
+	if c.CandidateID == "" {
+		return &ObjectValidationError{"missing CandidateID", objectType}
+	}
+
+	if c.ElectionID == "" {
+		return &ObjectValidationError{"missing ElectionID", objectType}
+	}
+
+	return nil
 }
 
 // =============================================================================
@@ -87,9 +112,18 @@ type Candidate struct {
 // Defines a Voter that is created with a ballot
 // Asset ID for Voters are prefixed with v-
 type Voter struct {
-	BioData  BioData `json:"BioData"`
-	VoterID  string  `json:"VoterID"`
-	BallotID string  `json:"BallotID"`
+	VoterID  string `json:"VoterID"`
+	BallotID string `json:"BallotID"`
+}
+
+func (v Voter) IsValid() error {
+	objectType := reflect.TypeOf(v).String()
+
+	if v.VoterID == "" {
+		return &ObjectValidationError{"missing VoterID", objectType}
+	}
+
+	return nil
 }
 
 // =============================================================================
@@ -104,4 +138,23 @@ type Ballot struct {
 	ElectionID string      `json:"ElectionID"`
 	VoterID    string      `json:"VoterID"`
 	Voted      bool        `json:"Voted"`
+}
+
+// Checks if BallotID, VoterID & ElectionID are not empty strings
+func (b Ballot) IsValid() error {
+	objectType := reflect.TypeOf(b).String()
+
+	if b.BallotID == "" {
+		return &ObjectValidationError{"missing BallotID", objectType}
+	}
+
+	if b.VoterID == "" {
+		return &ObjectValidationError{"missing VoterID", objectType}
+	}
+
+	if b.ElectionID == "" {
+		return &ObjectValidationError{"missing ElectionID", objectType}
+	}
+
+	return nil
 }

@@ -3,7 +3,6 @@ module github.com/direnbharwani/eVote_Capstone
 go 1.22.0
 
 require (
-	github.com/google/uuid v1.6.0
 	github.com/hyperledger/fabric-chaincode-go v0.0.0-20240124143825-7dec3c7e7d45
 	github.com/hyperledger/fabric-contract-api-go v1.2.2
 	github.com/hyperledger/fabric-protos-go v0.3.0
