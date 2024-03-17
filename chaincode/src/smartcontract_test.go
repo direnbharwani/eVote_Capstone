@@ -475,6 +475,170 @@ func TestQueryVoter(t *testing.T) {
 // Update Tests
 // =============================================================================
 
+func TestUpdateBallot(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
+
+	t.Run("Successfully update ballot", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockBallot, mockBallotData := MockBallot()
+
+		mockStub.On("CreateCompositeKey", mockBallot.Type(), []string{mockBallot.Asset.ID}).Return(mockBallot.Asset.ID, nil)
+		mockStub.On("GetState", mockBallot.Asset.ID).Return(mockBallotData, nil)
+		mockStub.On("PutState", mockBallot.Asset.ID, mock.AnythingOfType("[]uint8")).Return(nil, nil)
+
+		// Test
+		err := smartContract.UpdateBallot(mockCtx, string(mockBallotData))
+		require.NoError(t, err)
+	})
+
+	t.Run("Fail to update non-existent ballot", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockBallot, mockBallotData := MockBallot()
+
+		mockStub.On("CreateCompositeKey", mockBallot.Type(), []string{mockBallot.Asset.ID}).Return(mockBallot.Asset.ID, nil)
+		mockStub.On("GetState", mockBallot.Asset.ID).Return(nil, nil)
+
+		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockBallot.Asset.ID)
+
+		err := smartContract.UpdateBallot(mockCtx, string(mockBallotData))
+		require.EqualError(t, err, expectedError)
+	})
+}
+
+func TestUpdateCandidate(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
+
+	t.Run("Successfully update candidate", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockCandidate, mockCandidateData := MockCandidate()
+
+		mockStub.On("CreateCompositeKey", mockCandidate.Type(), []string{mockCandidate.Asset.ID}).Return(mockCandidate.Asset.ID, nil)
+		mockStub.On("GetState", mockCandidate.Asset.ID).Return(mockCandidateData, nil)
+		mockStub.On("PutState", mockCandidate.Asset.ID, mock.AnythingOfType("[]uint8")).Return(nil, nil)
+
+		// Test
+		err := smartContract.UpdateCandidate(mockCtx, string(mockCandidateData))
+		require.NoError(t, err)
+	})
+
+	t.Run("Fail to update non-existent candidate", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockCandidate, mockCandidateData := MockCandidate()
+
+		mockStub.On("CreateCompositeKey", mockCandidate.Type(), []string{mockCandidate.Asset.ID}).Return(mockCandidate.Asset.ID, nil)
+		mockStub.On("GetState", mockCandidate.Asset.ID).Return(nil, nil)
+
+		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockCandidate.Asset.ID)
+
+		err := smartContract.UpdateCandidate(mockCtx, string(mockCandidateData))
+		require.EqualError(t, err, expectedError)
+	})
+}
+
+func TestUpdateElection(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
+
+	t.Run("Successfully update Election", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockElection, mockElectionData := MockElection()
+
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+		mockStub.On("GetState", mockElection.Asset.ID).Return(mockElectionData, nil)
+		mockStub.On("PutState", mockElection.Asset.ID, mock.AnythingOfType("[]uint8")).Return(nil, nil)
+
+		// Test
+		err := smartContract.UpdateElection(mockCtx, string(mockElectionData))
+		require.NoError(t, err)
+	})
+
+	t.Run("Fail to update non-existent Election", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockElection, mockElectionData := MockElection()
+
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+		mockStub.On("GetState", mockElection.Asset.ID).Return(nil, nil)
+
+		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockElection.Asset.ID)
+
+		err := smartContract.UpdateElection(mockCtx, string(mockElectionData))
+		require.EqualError(t, err, expectedError)
+	})
+}
+
+func TestUpdateVoter(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
+
+	t.Run("Successfully update Voter", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockVoter, mockVoterData := MockVoter()
+
+		mockStub.On("CreateCompositeKey", mockVoter.Type(), []string{mockVoter.Asset.ID}).Return(mockVoter.Asset.ID, nil)
+		mockStub.On("GetState", mockVoter.Asset.ID).Return(mockVoterData, nil)
+		mockStub.On("PutState", mockVoter.Asset.ID, mock.AnythingOfType("[]uint8")).Return(nil, nil)
+
+		// Test
+		err := smartContract.UpdateVoter(mockCtx, string(mockVoterData))
+		require.NoError(t, err)
+	})
+
+	t.Run("Fail to update non-existent Voter", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockVoter, mockVoterData := MockVoter()
+
+		mockStub.On("CreateCompositeKey", mockVoter.Type(), []string{mockVoter.Asset.ID}).Return(mockVoter.Asset.ID, nil)
+		mockStub.On("GetState", mockVoter.Asset.ID).Return(nil, nil)
+
+		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockVoter.Asset.ID)
+
+		err := smartContract.UpdateVoter(mockCtx, string(mockVoterData))
+		require.EqualError(t, err, expectedError)
+	})
+}
+
 // =============================================================================
 // Mock Objects
 // =============================================================================
