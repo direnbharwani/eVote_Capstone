@@ -2,7 +2,9 @@ package chaincode
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -13,10 +15,19 @@ type SmartContract struct {
 
 // Function to test if the chaincode has been successfully deployed
 func (s *SmartContract) LiveTest() string {
-	// TODO: return a more verbose JSON with information
-	// Info: Name, Version, Time of Invocation, Status of SmartContract
+	data := map[string]interface{}{
+		"Name":    "Capstone eVote POC Chaincode",
+		"Version": "v0.1",
+		"Time":    time.Now().Format(time.DateTime),
+		"Status":  "Live",
+	}
 
-	return "Hello EVote V1!"
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err.Error()
+	}
+
+	return string(jsonData)
 }
 
 // =============================================================================
@@ -195,7 +206,7 @@ func queryAssetsByType[T ITYPES](ctx contractapi.TransactionContextInterface) ([
 // =============================================================================
 
 // Updates a ballot with the specified updated state.
-// The ballot cannot be updated if the election is not active or if the ballot has already been cast.
+// The ballot cannot be updated if the ballot has already been cast.
 func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface, updatedData string) error {
 	updatedBallot, err := ParseJSON[Ballot](updatedData)
 	if err != nil {
@@ -207,20 +218,10 @@ func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	// Allow ballot to be updated if within voting window of an election
-	election, err := queryAsset[Election](ctx, currentBallot.ElectionID)
-	if err != nil {
-		return err
-	}
-	if !election.IsActive() {
-		return fmt.Errorf("unable to update ballot %s while election %s is not active", currentBallot.BallotID, election.ElectionID)
-	}
-
 	if currentBallot.Voted {
 		return fmt.Errorf("unable to update ballot %s that has already been voted", currentBallot.BallotID)
 	}
 
-	updatedBallot.Voted = true
 	return updateAsset(ctx, updatedBallot.BallotID, updatedBallot)
 }
 
@@ -270,4 +271,41 @@ func updateAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 	}
 
 	return nil
+}
+
+// =============================================================================
+// Update
+// =============================================================================
+
+func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, voterID string, ballotID string, candidateID string) error {
+	voter, err := queryAsset[Voter](ctx, voterID)
+	if err != nil {
+		return err
+	}
+
+	ballot, err := queryAsset[Ballot](ctx, ballotID)
+	if err != nil {
+		return err
+	}
+
+	if voter.BallotID != ballotID || ballot.VoterID != voterID {
+		errorMessage := fmt.Sprintf("voter %s is not assigned ballot %s!", voterID, ballotID)
+		return errors.New(errorMessage)
+	}
+
+	candidateFound := false
+	for i, c := range ballot.Candidates {
+		if c.CandidateID == candidateID {
+			ballot.Candidates[i].Count++
+			candidateFound = true
+			break
+		}
+	}
+
+	if !candidateFound {
+		errorMessage := fmt.Sprintf("candidate %s is not found in ballot %s!", candidateID, ballotID)
+		return errors.New(errorMessage)
+	}
+
+	return updateAsset[Ballot](ctx, ballot.BallotID, ballot)
 }

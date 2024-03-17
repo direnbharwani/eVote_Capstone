@@ -18,7 +18,7 @@ import (
 // Creation Tests
 // =============================================================================
 
-func TestCreation(t *testing.T) {
+func TestCreateBallot(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
 	t.Run("Successfully create ballot", func(t *testing.T) {
@@ -96,57 +96,6 @@ func TestCreation(t *testing.T) {
 		require.EqualError(t, err, "cannot read world state with key e-0")
 	})
 }
-
-// func TestCreateCandidate(t *testing.T) {
-// 	smartContract := chaincode.SmartContract{}
-
-// 	// Mocks
-// 	mockStub := &mocks.ChaincodeStubInterface{}
-// 	mockCtx := &mocks.TransactionContextInterface{}
-
-// 	mockCtx.On("GetStub").Return(mockStub)
-
-// 	mockStub.On("GetState", "c-0").Return(nil, nil)
-// 	mockStub.On("PutState", "c-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
-
-// 	// Test
-// 	err := smartContract.CreateCandidate(mockCtx, *MockCandidate())
-// 	require.NoError(t, err)
-// }
-
-// func TestCreateElection(t *testing.T) {
-// 	smartContract := chaincode.SmartContract{}
-
-// 	// Mocks
-// 	mockStub := &mocks.ChaincodeStubInterface{}
-// 	mockCtx := &mocks.TransactionContextInterface{}
-
-// 	mockCtx.On("GetStub").Return(mockStub)
-
-// 	mockStub.On("GetState", "e-0").Return(nil, nil)
-// 	mockStub.On("PutState", "e-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
-
-// 	// Test
-// 	err := smartContract.CreateElection(mockCtx, *MockElection())
-// 	require.NoError(t, err)
-// }
-
-// func TestCreateVoter(t *testing.T) {
-// 	smartContract := chaincode.SmartContract{}
-
-// 	// Mocks
-// 	mockStub := &mocks.ChaincodeStubInterface{}
-// 	mockCtx := &mocks.TransactionContextInterface{}
-
-// 	mockCtx.On("GetStub").Return(mockStub)
-
-// 	mockStub.On("GetState", "v-0").Return(nil, nil)
-// 	mockStub.On("PutState", "v-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
-
-// 	// Test
-// 	err := smartContract.CreateVoter(mockCtx, *MockVoter())
-// 	require.NoError(t, err)
-// }
 
 // =============================================================================
 // Query Tests
