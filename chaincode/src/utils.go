@@ -9,7 +9,7 @@ func ParseJSON[T ITYPES](data string) (T, error) {
 	if err := json.Unmarshal([]byte(data), &result); err != nil {
 		return emptyObject, err
 	}
-	if err := result.IsValid(); err != nil {
+	if err := result.Validate(); err != nil {
 		return emptyObject, err
 	}
 

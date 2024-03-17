@@ -14,7 +14,7 @@ type ITYPES interface {
 	Ballot | Candidate | Election | Voter
 
 	Type() string
-	IsValid() error
+	Validate() error
 }
 
 type Asset struct {
@@ -52,7 +52,7 @@ func (e Election) Type() string {
 	return reflect.TypeOf(e).String()
 }
 
-func (e Election) IsValid() error {
+func (e Election) Validate() error {
 	objectType := reflect.TypeOf(e).String()
 
 	if e.Asset.ID == "" {
@@ -103,7 +103,7 @@ func (c Candidate) Type() string {
 	return reflect.TypeOf(c).String()
 }
 
-func (c Candidate) IsValid() error {
+func (c Candidate) Validate() error {
 	objectType := reflect.TypeOf(c).String()
 
 	if c.Asset.ID == "" {
@@ -132,11 +132,11 @@ func (v Voter) Type() string {
 	return reflect.TypeOf(v).String()
 }
 
-func (v Voter) IsValid() error {
+func (v Voter) Validate() error {
 	objectType := reflect.TypeOf(v).String()
 
 	if v.Asset.ID == "" {
-		return &ObjectValidationError{"missing VoterID", objectType}
+		return &ObjectValidationError{"missing ID", objectType}
 	}
 
 	return nil
@@ -161,15 +161,11 @@ func (b Ballot) Type() string {
 }
 
 // Checks if BallotID, VoterID & ElectionID are not empty strings
-func (b Ballot) IsValid() error {
+func (b Ballot) Validate() error {
 	objectType := reflect.TypeOf(b).String()
 
 	if b.Asset.ID == "" {
 		return &ObjectValidationError{"missing ID", objectType}
-	}
-
-	if b.VoterID == "" {
-		return &ObjectValidationError{"missing VoterID", objectType}
 	}
 
 	if b.ElectionID == "" {

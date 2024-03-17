@@ -35,7 +35,7 @@ func (s *SmartContract) LiveTest() string {
 // =============================================================================
 
 // Creates a ballot as an asset on the blockchain
-// data must contain BallotID, VoterID & ElectionID
+// data must contain Asset.ID, VoterID & ElectionID
 func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, data string) error {
 	ballot, err := ParseJSON[Ballot](data)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 }
 
 // Creates a candidate as an asset on the blockchain
-// data must contain CandidateID & ElectionID
+// data must contain Asset.ID & ElectionID
 func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterface, data string) error {
 	candidate, err := ParseJSON[Candidate](data)
 	if err != nil {
@@ -62,18 +62,7 @@ func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterf
 	}
 
 	candidate.Count = 0
-	if err := createAsset(ctx, candidate.Asset.ID, candidate); err != nil {
-		return err
-	}
-
-	// Update election with candidate
-	election, err := queryAsset[Election](ctx, candidate.ElectionID)
-	if err != nil {
-		return err
-	}
-
-	election.Candidates = append(election.Candidates, candidate)
-	return updateAsset(ctx, election.Asset.ID, election)
+	return createAsset(ctx, candidate.Asset.ID, candidate)
 }
 
 func (s *SmartContract) CreateElection(ctx contractapi.TransactionContextInterface, data string) error {
@@ -313,6 +302,16 @@ func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, vo
 
 	if voter.BallotID != ballotID || ballot.VoterID != voterID {
 		errorMessage := fmt.Sprintf("voter %s is not assigned ballot %s!", voterID, ballotID)
+		return errors.New(errorMessage)
+	}
+
+	// Ensure election is active
+	election, err := queryAsset[Election](ctx, ballot.ElectionID)
+	if err != nil {
+		return err
+	}
+	if !election.IsActive() {
+		errorMessage := fmt.Sprintf("election %s is not active! vote cannot be cast", election.Asset.ID)
 		return errors.New(errorMessage)
 	}
 
