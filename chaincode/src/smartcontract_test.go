@@ -72,14 +72,14 @@ func TestCreateBallot(t *testing.T) {
 
 		// Modify ballot for fail case
 		mockBallot, _ := MockBallot()
-		mockBallot.ElectionID = ""
+		mockBallot.Asset.ID = ""
 		mockBallotData, err := json.Marshal(mockBallot)
 		if err != nil {
 			t.Error(err)
 		}
 
 		// Test
-		expectedError := fmt.Sprintf("%s is invalid! %s", mockBallot.Type(), "missing ElectionID")
+		expectedError := fmt.Sprintf("%s is invalid! %s", mockBallot.Type(), "missing ID")
 
 		err = smartContract.CreateBallot(mockCtx, string(mockBallotData))
 		require.EqualError(t, err, expectedError)
@@ -302,7 +302,7 @@ func TestCreateVoter(t *testing.T) {
 func TestQueryBallot(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully query single ballot", func(t *testing.T) {
+	t.Run("Successfully query ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -315,11 +315,11 @@ func TestQueryBallot(t *testing.T) {
 		mockStub.On("GetState", mockBallot.Asset.ID).Return(mockBallotData, nil)
 
 		// Test
-		ballot, err := smartContract.QueryBallot(mockCtx, mockBallot.Asset.ID)
+		result, err := smartContract.QueryBallot(mockCtx, mockBallot.Asset.ID)
 		if err != nil {
 			t.Error(err)
 		}
-		require.Equal(t, *mockBallot, ballot)
+		require.Equal(t, *mockBallot, result)
 	})
 
 	t.Run("Fail to query non-existent ballot", func(t *testing.T) {
@@ -335,8 +335,139 @@ func TestQueryBallot(t *testing.T) {
 		mockStub.On("GetState", mockBallot.Asset.ID).Return(nil, nil)
 
 		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockBallot.Asset.ID)
+
 		_, err := smartContract.QueryBallot(mockCtx, mockBallot.Asset.ID)
-		require.EqualError(t, err, "cannot read world state with key b-0")
+		require.EqualError(t, err, expectedError)
+	})
+}
+
+func TestQueryCandidate(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
+
+	t.Run("Successfully query candidate", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockCandidate, mockCandidateData := MockCandidate()
+
+		mockStub.On("CreateCompositeKey", mockCandidate.Type(), []string{mockCandidate.Asset.ID}).Return(mockCandidate.Asset.ID, nil)
+		mockStub.On("GetState", mockCandidate.Asset.ID).Return(mockCandidateData, nil)
+
+		// Test
+		result, err := smartContract.QueryCandidate(mockCtx, mockCandidate.Asset.ID)
+		if err != nil {
+			t.Error(err)
+		}
+		require.Equal(t, *mockCandidate, result)
+	})
+
+	t.Run("Fail to query non-existent candidate", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockCandidate, _ := MockCandidate()
+
+		mockStub.On("CreateCompositeKey", mockCandidate.Type(), []string{mockCandidate.Asset.ID}).Return(mockCandidate.Asset.ID, nil)
+		mockStub.On("GetState", mockCandidate.Asset.ID).Return(nil, nil)
+
+		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockCandidate.Asset.ID)
+
+		_, err := smartContract.QueryCandidate(mockCtx, mockCandidate.Asset.ID)
+		require.EqualError(t, err, expectedError)
+	})
+}
+
+func TestQueryElection(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
+
+	t.Run("Successfully query election", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockElection, mockElectionData := MockElection()
+
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+		mockStub.On("GetState", mockElection.Asset.ID).Return(mockElectionData, nil)
+
+		// Test
+		result, err := smartContract.QueryElection(mockCtx, mockElection.Asset.ID)
+		if err != nil {
+			t.Error(err)
+		}
+		require.Equal(t, *mockElection, result)
+	})
+
+	t.Run("Fail to query non-existent election", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockElection, _ := MockElection()
+
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+		mockStub.On("GetState", mockElection.Asset.ID).Return(nil, nil)
+
+		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockElection.Asset.ID)
+
+		_, err := smartContract.QueryElection(mockCtx, mockElection.Asset.ID)
+		require.EqualError(t, err, expectedError)
+	})
+}
+
+func TestQueryVoter(t *testing.T) {
+	smartContract := chaincode.SmartContract{}
+
+	t.Run("Successfully query voter", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockVoter, mockVoterData := MockVoter()
+
+		mockStub.On("CreateCompositeKey", mockVoter.Type(), []string{mockVoter.Asset.ID}).Return(mockVoter.Asset.ID, nil)
+		mockStub.On("GetState", mockVoter.Asset.ID).Return(mockVoterData, nil)
+
+		// Test
+		result, err := smartContract.QueryVoter(mockCtx, mockVoter.Asset.ID)
+		if err != nil {
+			t.Error(err)
+		}
+		require.Equal(t, *mockVoter, result)
+	})
+
+	t.Run("Fail to query non-existent voter", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockVoter, _ := MockVoter()
+
+		mockStub.On("CreateCompositeKey", mockVoter.Type(), []string{mockVoter.Asset.ID}).Return(mockVoter.Asset.ID, nil)
+		mockStub.On("GetState", mockVoter.Asset.ID).Return(nil, nil)
+
+		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockVoter.Asset.ID)
+
+		_, err := smartContract.QueryVoter(mockCtx, mockVoter.Asset.ID)
+		require.EqualError(t, err, expectedError)
 	})
 }
 
@@ -409,7 +540,7 @@ func MockVoter() (*chaincode.Voter, []byte) {
 
 	mock := chaincode.Voter{
 		Asset:    id,
-		BallotID: "",
+		BallotID: "b-0",
 	}
 
 	mockData, err := json.Marshal(mock)
