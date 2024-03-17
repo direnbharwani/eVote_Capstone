@@ -1,6 +1,7 @@
 package chaincode
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -12,9 +13,12 @@ import (
 type ITYPES interface {
 	Ballot | Candidate | Election | Voter
 
-	// Methods
-	// Type() string
+	Type() string
 	IsValid() error
+}
+
+type Asset struct {
+	ID string `json:"ID"`
 }
 
 // =============================================================================
@@ -37,18 +41,22 @@ func (e *ObjectValidationError) Error() string {
 // Defines an election
 // Asset ID for Elections are prefixed with e-
 type Election struct {
+	Asset      Asset       `json:"Asset"`
 	Candidates []Candidate `json:"Candidates"`
-	ElectionID string      `json:"ElectionID"`
 	EndTime    string      `json:"EndTime"`
 	Name       string      `json:"Name"`
 	StartTime  string      `json:"StartTime"`
 }
 
+func (e Election) Type() string {
+	return reflect.TypeOf(e).String()
+}
+
 func (e Election) IsValid() error {
 	objectType := reflect.TypeOf(e).String()
 
-	if e.ElectionID == "" {
-		return &ObjectValidationError{"missing ElectionID", objectType}
+	if e.Asset.ID == "" {
+		return &ObjectValidationError{"missing ID", objectType}
 	}
 
 	if _, err := time.Parse(time.DateTime, e.StartTime); err != nil {
@@ -85,17 +93,21 @@ func (e Election) IsActive() bool {
 // Defines a electoral candidate
 // Asset ID for Candidates are prefixed with c-
 type Candidate struct {
-	CandidateID string `json:"CandidateID"`
-	Count       uint64 `json:"Count"`
-	ElectionID  string `json:"ElectionID"`
-	Name        string `json:"Name"`
+	Asset      Asset  `json:"Asset"`
+	Count      uint64 `json:"Count"`
+	ElectionID string `json:"ElectionID"`
+	Name       string `json:"Name"`
+}
+
+func (c Candidate) Type() string {
+	return reflect.TypeOf(c).String()
 }
 
 func (c Candidate) IsValid() error {
 	objectType := reflect.TypeOf(c).String()
 
-	if c.CandidateID == "" {
-		return &ObjectValidationError{"missing CandidateID", objectType}
+	if c.Asset.ID == "" {
+		return &ObjectValidationError{"missing ID", objectType}
 	}
 
 	if c.ElectionID == "" {
@@ -112,14 +124,18 @@ func (c Candidate) IsValid() error {
 // Defines a Voter that is created with a ballot
 // Asset ID for Voters are prefixed with v-
 type Voter struct {
-	VoterID  string `json:"VoterID"`
+	Asset    Asset  `json:"Asset"`
 	BallotID string `json:"BallotID"`
+}
+
+func (v Voter) Type() string {
+	return reflect.TypeOf(v).String()
 }
 
 func (v Voter) IsValid() error {
 	objectType := reflect.TypeOf(v).String()
 
-	if v.VoterID == "" {
+	if v.Asset.ID == "" {
 		return &ObjectValidationError{"missing VoterID", objectType}
 	}
 
@@ -133,19 +149,23 @@ func (v Voter) IsValid() error {
 // Defines a Ballot that is assigned to a voter
 // Asset ID for Ballots are prefixed with b-
 type Ballot struct {
-	BallotID   string      `json:"BallotID"`
+	Asset      Asset       `json:"Asset"`
 	Candidates []Candidate `json:"Candidates"`
 	ElectionID string      `json:"ElectionID"`
 	VoterID    string      `json:"VoterID"`
 	Voted      bool        `json:"Voted"`
 }
 
+func (b Ballot) Type() string {
+	return reflect.TypeOf(b).String()
+}
+
 // Checks if BallotID, VoterID & ElectionID are not empty strings
 func (b Ballot) IsValid() error {
 	objectType := reflect.TypeOf(b).String()
 
-	if b.BallotID == "" {
-		return &ObjectValidationError{"missing BallotID", objectType}
+	if b.Asset.ID == "" {
+		return &ObjectValidationError{"missing ID", objectType}
 	}
 
 	if b.VoterID == "" {
@@ -154,6 +174,27 @@ func (b Ballot) IsValid() error {
 
 	if b.ElectionID == "" {
 		return &ObjectValidationError{"missing ElectionID", objectType}
+	}
+
+	return nil
+}
+
+func (b *Ballot) Vote(candidateID string) error {
+	candidateFound := false
+	for i, c := range b.Candidates {
+		if c.Asset.ID == candidateID {
+			candidateFound = true
+
+			b.Candidates[i].Count++
+			b.Voted = true
+
+			break
+		}
+	}
+
+	if !candidateFound {
+		errorMessage := fmt.Sprintf("candidate %s is not found in ballot %s!", candidateID, b.Asset.ID)
+		return errors.New(errorMessage)
 	}
 
 	return nil

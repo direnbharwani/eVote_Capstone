@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"reflect"
 	"testing"
 
 	chaincode "github.com/direnbharwani/eVote_Capstone/src"
@@ -28,12 +27,15 @@ func TestCreateBallot(t *testing.T) {
 
 		mockCtx.On("GetStub").Return(mockStub)
 
-		_, mockBallotData := MockBallot()
-		_, mockElectionData := MockElection()
+		mockBallot, mockBallotData := MockBallot()
+		mockElection, mockElectionData := MockElection()
 
-		mockStub.On("GetState", "b-0").Return(nil, nil)
-		mockStub.On("GetState", "e-0").Return(mockElectionData, nil)
-		mockStub.On("PutState", "b-0", mock.AnythingOfType("[]uint8")).Return(nil, nil)
+		mockStub.On("CreateCompositeKey", mockBallot.Type(), []string{mockBallot.Asset.ID}).Return(mockBallot.Asset.ID, nil)
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+
+		mockStub.On("GetState", mockElection.Asset.ID).Return(mockElectionData, nil)
+		mockStub.On("GetState", mockBallot.Asset.ID).Return(nil, nil)
+		mockStub.On("PutState", mockBallot.Asset.ID, mock.AnythingOfType("[]uint8")).Return(nil, nil)
 
 		// Test
 		err := smartContract.CreateBallot(mockCtx, string(mockBallotData))
@@ -47,15 +49,20 @@ func TestCreateBallot(t *testing.T) {
 
 		mockCtx.On("GetStub").Return(mockStub)
 
-		_, mockBallotData := MockBallot()
-		_, mockElectionData := MockElection()
+		mockBallot, mockBallotData := MockBallot()
+		mockElection, mockElectionData := MockElection()
 
-		mockStub.On("GetState", "e-0").Return(mockElectionData, nil)
-		mockStub.On("GetState", "b-0").Return(mockBallotData, nil)
+		mockStub.On("CreateCompositeKey", mockBallot.Type(), []string{mockBallot.Asset.ID}).Return(mockBallot.Asset.ID, nil)
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+
+		mockStub.On("GetState", mockElection.Asset.ID).Return(mockElectionData, nil)
+		mockStub.On("GetState", mockBallot.Asset.ID).Return(mockBallotData, nil)
 
 		// Test
+		expectedError := fmt.Sprintf("%s: %s already created", mockBallot.Type(), mockBallot.Asset.ID)
+
 		err := smartContract.CreateBallot(mockCtx, string(mockBallotData))
-		require.EqualError(t, err, "ballot: b-0 already created")
+		require.EqualError(t, err, expectedError)
 	})
 
 	t.Run("Fail to create invalid ballot", func(t *testing.T) {
@@ -67,7 +74,7 @@ func TestCreateBallot(t *testing.T) {
 
 		// Modify ballot for fail case
 		mockBallot, _ := MockBallot()
-		mockBallot.BallotID = ""
+		mockBallot.Asset.ID = ""
 		mockBallotData, err := json.Marshal(mockBallot)
 		if err != nil {
 			t.Error(err)
@@ -75,7 +82,7 @@ func TestCreateBallot(t *testing.T) {
 
 		// Test
 		// We don't need to mock GetState for the ballotID since it will fail before reaching createAsset
-		expectedError := fmt.Sprintf("%s is invalid! %s", reflect.TypeOf(*mockBallot).String(), "missing BallotID")
+		expectedError := fmt.Sprintf("%s is invalid! %s", mockBallot.Type(), "missing ID")
 
 		err = smartContract.CreateBallot(mockCtx, string(mockBallotData))
 		require.EqualError(t, err, expectedError)
@@ -89,11 +96,16 @@ func TestCreateBallot(t *testing.T) {
 		mockCtx.On("GetStub").Return(mockStub)
 
 		_, mockBallotData := MockBallot()
-		mockStub.On("GetState", "e-0").Return(nil, nil)
+		mockElection, _ := MockElection()
+
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+		mockStub.On("GetState", mockElection.Asset.ID).Return(nil, nil)
 
 		// Test
+		expectedError := fmt.Sprintf("cannot read world state with key %s", mockElection.Asset.ID)
+
 		err := smartContract.CreateBallot(mockCtx, string(mockBallotData))
-		require.EqualError(t, err, "cannot read world state with key e-0")
+		require.EqualError(t, err, expectedError)
 	})
 }
 
@@ -113,10 +125,11 @@ func TestQuery(t *testing.T) {
 
 		mockBallot, mockBallotData := MockBallot()
 
-		mockStub.On("GetState", "b-0").Return(mockBallotData, nil)
+		mockStub.On("CreateCompositeKey", mockBallot.Type(), []string{mockBallot.Asset.ID}).Return(mockBallot.Asset.ID, nil)
+		mockStub.On("GetState", mockBallot.Asset.ID).Return(mockBallotData, nil)
 
 		// Test
-		ballot, err := smartContract.QueryBallot(mockCtx, mockBallot.BallotID)
+		ballot, err := smartContract.QueryBallot(mockCtx, mockBallot.Asset.ID)
 		if err != nil {
 			t.Error(err)
 		}
@@ -132,10 +145,11 @@ func TestQuery(t *testing.T) {
 
 		mockBallot, _ := MockBallot()
 
-		mockStub.On("GetState", "b-0").Return(nil, nil)
+		mockStub.On("CreateCompositeKey", mockBallot.Type(), []string{mockBallot.Asset.ID}).Return(mockBallot.Asset.ID, nil)
+		mockStub.On("GetState", mockBallot.Asset.ID).Return(nil, nil)
 
 		// Test
-		_, err := smartContract.QueryBallot(mockCtx, mockBallot.BallotID)
+		_, err := smartContract.QueryBallot(mockCtx, mockBallot.Asset.ID)
 		require.EqualError(t, err, "cannot read world state with key b-0")
 	})
 }
@@ -149,8 +163,10 @@ func TestQuery(t *testing.T) {
 // =============================================================================
 
 func MockBallot() (*chaincode.Ballot, []byte) {
+	id := chaincode.Asset{"b-0"}
+
 	mock := chaincode.Ballot{
-		BallotID:   "b-0",
+		Asset:      id,
 		Candidates: []chaincode.Candidate{},
 		ElectionID: "e-0",
 		VoterID:    "v-0",
@@ -166,11 +182,13 @@ func MockBallot() (*chaincode.Ballot, []byte) {
 }
 
 func MockCandidate() (*chaincode.Candidate, []byte) {
+	id := chaincode.Asset{"c-0"}
+
 	mock := chaincode.Candidate{
-		CandidateID: "c-0",
-		Count:       0,
-		ElectionID:  "e-0",
-		Name:        "mockCandidate",
+		Asset:      id,
+		Count:      0,
+		ElectionID: "e-0",
+		Name:       "mockCandidate",
 	}
 
 	mockData, err := json.Marshal(mock)
@@ -182,9 +200,11 @@ func MockCandidate() (*chaincode.Candidate, []byte) {
 }
 
 func MockElection() (*chaincode.Election, []byte) {
+	id := chaincode.Asset{"e-0"}
+
 	mock := chaincode.Election{
+		Asset:      id,
 		Candidates: []chaincode.Candidate{},
-		ElectionID: "e-0",
 		Name:       "mockElection",
 		EndTime:    "2024-01-01 23:59:59",
 		StartTime:  "2024-01-01 00:00:00",
@@ -199,8 +219,10 @@ func MockElection() (*chaincode.Election, []byte) {
 }
 
 func MockVoter() (*chaincode.Voter, []byte) {
+	id := chaincode.Asset{"v-0"}
+
 	mock := chaincode.Voter{
-		VoterID:  "v-0",
+		Asset:    id,
 		BallotID: "",
 	}
 
