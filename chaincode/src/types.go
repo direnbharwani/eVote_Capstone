@@ -11,7 +11,7 @@ import (
 // ITYPES is a union set type constraint
 // that enforces only allowable types are passed to smart contract methods.
 type ITYPES interface {
-	Ballot | Candidate | Election | Voter
+	Ballot | Candidate | Election
 
 	Type() string
 	Validate() error
@@ -112,31 +112,6 @@ func (c Candidate) Validate() error {
 
 	if c.ElectionID == "" {
 		return &ObjectValidationError{"missing ElectionID", objectType}
-	}
-
-	return nil
-}
-
-// =============================================================================
-// Voter
-// =============================================================================
-
-// Defines a Voter that is created with a ballot
-// Asset ID for Voters are prefixed with v-
-type Voter struct {
-	Asset    Asset  `json:"Asset"`
-	BallotID string `json:"BallotID"`
-}
-
-func (v Voter) Type() string {
-	return reflect.TypeOf(v).String()
-}
-
-func (v Voter) Validate() error {
-	objectType := reflect.TypeOf(v).String()
-
-	if v.Asset.ID == "" {
-		return &ObjectValidationError{"missing ID", objectType}
 	}
 
 	return nil

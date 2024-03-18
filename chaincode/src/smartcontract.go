@@ -76,15 +76,6 @@ func (s *SmartContract) CreateElection(ctx contractapi.TransactionContextInterfa
 	return createAsset(ctx, election.Asset.ID, election)
 }
 
-func (s *SmartContract) CreateVoter(ctx contractapi.TransactionContextInterface, data string) error {
-	voter, err := ParseJSON[Voter](data)
-	if err != nil {
-		return err
-	}
-
-	return createAsset(ctx, voter.Asset.ID, voter)
-}
-
 func createAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string, createdAsset T) error {
 	compositeKey, err := ctx.GetStub().CreateCompositeKey(createdAsset.Type(), []string{key})
 	if err != nil {
@@ -127,10 +118,6 @@ func (s *SmartContract) QueryElection(ctx contractapi.TransactionContextInterfac
 	return queryAsset[Election](ctx, key)
 }
 
-func (s *SmartContract) QueryVoter(ctx contractapi.TransactionContextInterface, key string) (Voter, error) {
-	return queryAsset[Voter](ctx, key)
-}
-
 func (s *SmartContract) QueryAllBallots(ctx contractapi.TransactionContextInterface) ([]Ballot, error) {
 	return queryAssetsByType[Ballot](ctx)
 }
@@ -141,10 +128,6 @@ func (s *SmartContract) QueryAllCandidates(ctx contractapi.TransactionContextInt
 
 func (s *SmartContract) QueryAllElections(ctx contractapi.TransactionContextInterface) ([]Election, error) {
 	return queryAssetsByType[Election](ctx)
-}
-
-func (s *SmartContract) QueryAllVoters(ctx contractapi.TransactionContextInterface) ([]Voter, error) {
-	return queryAssetsByType[Voter](ctx)
 }
 
 func queryAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string) (T, error) {
@@ -250,15 +233,6 @@ func (s *SmartContract) UpdateElection(ctx contractapi.TransactionContextInterfa
 	return updateAsset(ctx, updatedElection.Asset.ID, updatedElection)
 }
 
-func (s *SmartContract) UpdateVoter(ctx contractapi.TransactionContextInterface, updatedData string) error {
-	updatedVoter, err := ParseJSON[Voter](updatedData)
-	if err != nil {
-		return err
-	}
-
-	return updateAsset(ctx, updatedVoter.Asset.ID, updatedVoter)
-}
-
 func updateAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string, updatedAsset T) error {
 	compositeKey, err := ctx.GetStub().CreateCompositeKey(updatedAsset.Type(), []string{key})
 	if err != nil {
@@ -290,17 +264,12 @@ func updateAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 // =============================================================================
 
 func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, voterID string, ballotID string, candidateID string) error {
-	voter, err := queryAsset[Voter](ctx, voterID)
-	if err != nil {
-		return err
-	}
-
 	ballot, err := queryAsset[Ballot](ctx, ballotID)
 	if err != nil {
 		return err
 	}
 
-	if voter.BallotID != ballotID || ballot.VoterID != voterID {
+	if ballot.VoterID != voterID {
 		errorMessage := fmt.Sprintf("voter %s is not assigned ballot %s!", voterID, ballotID)
 		return errors.New(errorMessage)
 	}
