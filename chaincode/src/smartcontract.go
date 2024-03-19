@@ -47,7 +47,16 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	ballot.Candidates = election.Candidates
+	for _, candidateID := range election.Candidates {
+		candidate, err := queryAsset[Candidate](ctx, candidateID)
+		if err != nil {
+			return err
+		}
+
+		ballot.Candidates = append(ballot.Candidates, candidate)
+	}
+
+	// Default state must be false
 	ballot.Voted = false
 
 	return createAsset(ctx, ballot.Asset.ID, ballot)
@@ -61,6 +70,7 @@ func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterf
 		return err
 	}
 
+	// Default state must be 0 count. Count will not change on candidate assets, only in ballots.
 	candidate.Count = 0
 	return createAsset(ctx, candidate.Asset.ID, candidate)
 }
@@ -79,14 +89,14 @@ func (s *SmartContract) CreateElection(ctx contractapi.TransactionContextInterfa
 func createAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string, createdAsset T) error {
 	compositeKey, err := ctx.GetStub().CreateCompositeKey(createdAsset.Type(), []string{key})
 	if err != nil {
-		return fmt.Errorf("unable to create key: %v", err)
+		return &CompositeKeyCreationError{err.Error(), key, createdAsset.Type()}
 	}
 
-	objectState, err := ctx.GetStub().GetState(compositeKey)
+	assetState, err := ctx.GetStub().GetState(compositeKey)
 	if err != nil {
-		return fmt.Errorf("unable to interact with world state: %v", err)
+		return &WorldStateInteractionError{key, err.Error()}
 	}
-	if objectState != nil {
+	if assetState != nil {
 		return fmt.Errorf("%s: %s already created", createdAsset.Type(), key)
 	}
 
@@ -96,7 +106,7 @@ func createAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 	}
 
 	if err = ctx.GetStub().PutState(compositeKey, createdData); err != nil {
-		return fmt.Errorf("unable to interact with world state: %v", err)
+		return &WorldStateInteractionError{key, err.Error()}
 	}
 
 	return nil
@@ -136,15 +146,15 @@ func queryAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key strin
 
 	compositeKey, err := ctx.GetStub().CreateCompositeKey(result.Type(), []string{key})
 	if err != nil {
-		return emptyObject, fmt.Errorf("unable to create key: %v", err)
+		return emptyObject, &CompositeKeyCreationError{err.Error(), key, result.Type()}
 	}
 
 	assetState, err := ctx.GetStub().GetState(compositeKey)
 	if err != nil {
-		return emptyObject, fmt.Errorf("unable to interact with world state: %v", err)
+		return emptyObject, &WorldStateInteractionError{err.Error(), key}
 	}
 	if assetState == nil {
-		return emptyObject, fmt.Errorf("cannot read world state with key %s", key)
+		return emptyObject, &WorldStateReadFailureError{key}
 	}
 
 	if err = json.Unmarshal(assetState, &result); err != nil {
@@ -155,36 +165,30 @@ func queryAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key strin
 }
 
 func queryAssetsByType[T ITYPES](ctx contractapi.TransactionContextInterface) ([]T, error) {
-	// By using empty start & end keys, we will grab all assets
-	startKey := ""
-	endKey := ""
+	var emptyObject T
 
 	results := []T{}
-	resultIterator, err := ctx.GetStub().GetStateByRange(startKey, endKey)
+	resultIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(emptyObject.Type(), []string{})
 	if err != nil {
 		return nil, err
 	}
-
 	defer resultIterator.Close()
+
 	for resultIterator.HasNext() {
-		var result T
-		queryResponse, err := resultIterator.Next()
+		compositeKey, err := resultIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		objectType, _, err := ctx.GetStub().SplitCompositeKey(queryResponse.Key)
+		_, keys, err := ctx.GetStub().SplitCompositeKey(compositeKey.Key)
 		if err != nil {
 			return nil, err
 		}
-		if objectType != result.Type() {
-			continue
-		}
 
-		if err = json.Unmarshal(queryResponse.Value, &result); err != nil {
+		result, err := queryAsset[T](ctx, keys[0])
+		if err != nil {
 			return nil, err
 		}
-
 		results = append(results, result)
 	}
 
@@ -198,62 +202,71 @@ func queryAssetsByType[T ITYPES](ctx contractapi.TransactionContextInterface) ([
 // Updates a ballot with the specified updated state.
 // The ballot cannot be updated if the ballot has already been cast.
 func (s *SmartContract) UpdateBallot(ctx contractapi.TransactionContextInterface, updatedData string) error {
-	updatedBallot, err := ParseJSON[Ballot](updatedData)
+	updatedState, err := ParseJSON[Ballot](updatedData)
 	if err != nil {
 		return err
 	}
 
-	currentBallot, err := queryAsset[Ballot](ctx, updatedBallot.Asset.ID)
+	currentState, err := queryAsset[Ballot](ctx, updatedState.Asset.ID)
 	if err != nil {
 		return err
 	}
 
-	if currentBallot.Voted {
-		return fmt.Errorf("unable to update ballot %s that has already been voted", currentBallot.Asset.ID)
+	if currentState.Voted {
+		return fmt.Errorf("unable to update ballot %s that has already been voted", currentState.Asset.ID)
 	}
 
-	return updateAsset(ctx, updatedBallot.Asset.ID, updatedBallot)
+	return updateAsset(ctx, updatedState.Asset.ID, updatedState)
 }
 
 func (s *SmartContract) UpdateCandidate(ctx contractapi.TransactionContextInterface, updatedData string) error {
-	updatedCandidate, err := ParseJSON[Candidate](updatedData)
+	updatedState, err := ParseJSON[Candidate](updatedData)
 	if err != nil {
 		return err
 	}
 
-	return updateAsset(ctx, updatedCandidate.Asset.ID, updatedCandidate)
+	return updateAsset(ctx, updatedState.Asset.ID, updatedState)
 }
 
 func (s *SmartContract) UpdateElection(ctx contractapi.TransactionContextInterface, updatedData string) error {
-	updatedElection, err := ParseJSON[Election](updatedData)
+	updatedState, err := ParseJSON[Election](updatedData)
 	if err != nil {
 		return err
 	}
 
-	return updateAsset(ctx, updatedElection.Asset.ID, updatedElection)
+	return updateAsset(ctx, updatedState.Asset.ID, updatedState)
 }
 
 func updateAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string, updatedAsset T) error {
 	compositeKey, err := ctx.GetStub().CreateCompositeKey(updatedAsset.Type(), []string{key})
 	if err != nil {
-		return fmt.Errorf("unable to create key: %v", err)
+		return &CompositeKeyCreationError{err.Error(), key, updatedAsset.Type()}
 	}
 
-	assetState, err := ctx.GetStub().GetState(compositeKey)
+	currentState, err := ctx.GetStub().GetState(compositeKey)
 	if err != nil {
-		return fmt.Errorf("unable to interact with world state: %v", err)
+		return &WorldStateInteractionError{err.Error(), key}
 	}
-	if assetState == nil {
-		return fmt.Errorf("cannot read world state with key %s", key)
+	if currentState == nil {
+		return &WorldStateReadFailureError{key}
 	}
 
-	bytes, err := json.Marshal(updatedAsset)
+	var currentAsset T
+	if err = json.Unmarshal(currentState, &currentAsset); err != nil {
+		return err
+	}
+
+	if currentAsset.IsEqual(updatedAsset) {
+		return &ObjectEqualityError{key, updatedAsset.Type()}
+	}
+
+	updatedData, err := json.Marshal(updatedAsset)
 	if err != nil {
 		return err
 	}
 
-	if err = ctx.GetStub().PutState(compositeKey, bytes); err != nil {
-		return fmt.Errorf("unable to interact with world state: %v", err)
+	if err = ctx.GetStub().PutState(compositeKey, updatedData); err != nil {
+		return &WorldStateInteractionError{err.Error(), key}
 	}
 
 	return nil

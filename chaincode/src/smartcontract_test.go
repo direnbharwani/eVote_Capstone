@@ -358,10 +358,10 @@ func TestQueryElection(t *testing.T) {
 		mockStub.On("GetState", mockElection.Asset.ID).Return(nil, nil)
 
 		// Test
-		expectedError := fmt.Sprintf("cannot read world state with key %s", mockElection.Asset.ID)
+		expectedError := chaincode.WorldStateReadFailureError{mockElection.Asset.ID}
 
 		_, err := smartContract.QueryElection(mockCtx, mockElection.Asset.ID)
-		require.EqualError(t, err, expectedError)
+		require.EqualError(t, err, expectedError.Error())
 	})
 }
 
@@ -372,7 +372,7 @@ func TestQueryElection(t *testing.T) {
 func TestUpdateBallot(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully update ballot", func(t *testing.T) {
+	t.Run("Successfully to update ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -386,8 +386,33 @@ func TestUpdateBallot(t *testing.T) {
 		mockStub.On("PutState", mockBallot.Asset.ID, mock.AnythingOfType("[]uint8")).Return(nil, nil)
 
 		// Test
-		err := smartContract.UpdateBallot(mockCtx, string(mockBallotData))
+		mockBallot.VoterID = "v-0"
+		updatedMockBallotData, err := json.Marshal(mockBallot)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = smartContract.UpdateBallot(mockCtx, string(updatedMockBallotData))
 		require.NoError(t, err)
+	})
+
+	t.Run("Fail to update identical ballot data", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockBallot, mockBallotData := MockBallot()
+
+		mockStub.On("CreateCompositeKey", mockBallot.Type(), []string{mockBallot.Asset.ID}).Return(mockBallot.Asset.ID, nil)
+		mockStub.On("GetState", mockBallot.Asset.ID).Return(mockBallotData, nil)
+
+		// Test
+		expectedError := chaincode.ObjectEqualityError{mockBallot.Asset.ID, mockBallot.Type()}
+
+		err := smartContract.UpdateBallot(mockCtx, string(mockBallotData))
+		require.EqualError(t, err, expectedError.Error())
 	})
 
 	t.Run("Fail to update non-existent ballot", func(t *testing.T) {
@@ -427,8 +452,33 @@ func TestUpdateCandidate(t *testing.T) {
 		mockStub.On("PutState", mockCandidate.Asset.ID, mock.AnythingOfType("[]uint8")).Return(nil, nil)
 
 		// Test
-		err := smartContract.UpdateCandidate(mockCtx, string(mockCandidateData))
+		mockCandidate.Name = "mockCandidate1"
+		updatedMockCandidateData, err := json.Marshal(mockCandidate)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = smartContract.UpdateCandidate(mockCtx, string(updatedMockCandidateData))
 		require.NoError(t, err)
+	})
+
+	t.Run("Fail to update identical candidate data", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockCandidate, mockCandidateData := MockCandidate()
+
+		mockStub.On("CreateCompositeKey", mockCandidate.Type(), []string{mockCandidate.Asset.ID}).Return(mockCandidate.Asset.ID, nil)
+		mockStub.On("GetState", mockCandidate.Asset.ID).Return(mockCandidateData, nil)
+
+		// Test
+		expectedError := chaincode.ObjectEqualityError{mockCandidate.Asset.ID, mockCandidate.Type()}
+
+		err := smartContract.UpdateCandidate(mockCtx, string(mockCandidateData))
+		require.EqualError(t, err, expectedError.Error())
 	})
 
 	t.Run("Fail to update non-existent candidate", func(t *testing.T) {
@@ -468,8 +518,33 @@ func TestUpdateElection(t *testing.T) {
 		mockStub.On("PutState", mockElection.Asset.ID, mock.AnythingOfType("[]uint8")).Return(nil, nil)
 
 		// Test
-		err := smartContract.UpdateElection(mockCtx, string(mockElectionData))
+		mockElection.Name = "mockElection1"
+		updatedMockElectionData, err := json.Marshal(mockElection)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = smartContract.UpdateElection(mockCtx, string(updatedMockElectionData))
 		require.NoError(t, err)
+	})
+
+	t.Run("Fail to update identical election data", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockElection, mockElectionData := MockElection()
+
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+		mockStub.On("GetState", mockElection.Asset.ID).Return(mockElectionData, nil)
+
+		// Test
+		expectedError := chaincode.ObjectEqualityError{mockElection.Asset.ID, mockElection.Type()}
+
+		err := smartContract.UpdateElection(mockCtx, string(mockElectionData))
+		require.EqualError(t, err, expectedError.Error())
 	})
 
 	t.Run("Fail to update non-existent Election", func(t *testing.T) {
@@ -490,6 +565,32 @@ func TestUpdateElection(t *testing.T) {
 		err := smartContract.UpdateElection(mockCtx, string(mockElectionData))
 		require.EqualError(t, err, expectedError)
 	})
+
+	t.Run("Fail to invalidate existing Election", func(t *testing.T) {
+		// Mocks
+		mockStub := &mocks.ChaincodeStubInterface{}
+		mockCtx := &mocks.TransactionContextInterface{}
+
+		mockCtx.On("GetStub").Return(mockStub)
+
+		mockElection, mockElectionData := MockElection()
+
+		mockStub.On("CreateCompositeKey", mockElection.Type(), []string{mockElection.Asset.ID}).Return(mockElection.Asset.ID, nil)
+		mockStub.On("GetState", mockElection.Asset.ID).Return(mockElectionData, nil)
+
+		// Modify election for fail case
+		mockElection.StartTime = "2024-01-02 00:00:00"
+		updatedMockElectionData, err := json.Marshal(mockElection)
+		if err != nil {
+			t.Error(err)
+		}
+
+		// Test
+		expectedError := &chaincode.ObjectValidationError{"EndTime must be after StartTime", mockElection.Type()}
+
+		err = smartContract.UpdateElection(mockCtx, string(updatedMockElectionData))
+		require.EqualError(t, err, expectedError.Error())
+	})
 }
 
 // =============================================================================
@@ -503,7 +604,7 @@ func MockBallot() (*chaincode.Ballot, []byte) {
 		Asset:      id,
 		Candidates: []chaincode.Candidate{},
 		ElectionID: "e-0",
-		VoterID:    "v-0",
+		VoterID:    "",
 		Voted:      false,
 	}
 
@@ -538,7 +639,7 @@ func MockElection() (*chaincode.Election, []byte) {
 
 	mock := chaincode.Election{
 		Asset:      id,
-		Candidates: []chaincode.Candidate{},
+		Candidates: []string{},
 		Name:       "mockElection",
 		EndTime:    "2024-01-01 23:59:59",
 		StartTime:  "2024-01-01 00:00:00",

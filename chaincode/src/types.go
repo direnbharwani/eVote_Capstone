@@ -15,6 +15,7 @@ type ITYPES interface {
 
 	Type() string
 	Validate() error
+	IsEqual(other interface{}) bool
 }
 
 type Asset struct {
@@ -26,12 +27,48 @@ type Asset struct {
 // =============================================================================
 
 type ObjectValidationError struct {
-	Message string
-	Type    string
+	ErrorMessage string
+	ObjectType   string
 }
 
 func (e *ObjectValidationError) Error() string {
-	return fmt.Sprintf("%s is invalid! %s", e.Type, e.Message)
+	return fmt.Sprintf("%s is invalid! %s", e.ObjectType, e.ErrorMessage)
+}
+
+type ObjectEqualityError struct {
+	Key        string
+	ObjectType string
+}
+
+func (e *ObjectEqualityError) Error() string {
+	return fmt.Sprintf("%s %s have identical states!", e.ObjectType, e.Key)
+}
+
+type CompositeKeyCreationError struct {
+	ErrorMessage string
+	Key          string
+	ObjectType   string
+}
+
+func (e *CompositeKeyCreationError) Error() string {
+	return fmt.Sprintf("unable to create composite key for %s %s: %s", e.ObjectType, e.Key, e.ErrorMessage)
+}
+
+type WorldStateInteractionError struct {
+	ErrorMessage string
+	Key          string
+}
+
+func (e *WorldStateInteractionError) Error() string {
+	return fmt.Sprintf("unable to interact with world state for %s: %s", e.Key, e.ErrorMessage)
+}
+
+type WorldStateReadFailureError struct {
+	Key string
+}
+
+func (e *WorldStateReadFailureError) Error() string {
+	return fmt.Sprintf("cannot read world state with key %s", e.Key)
 }
 
 // =============================================================================
@@ -41,11 +78,11 @@ func (e *ObjectValidationError) Error() string {
 // Defines an election
 // Asset ID for Elections are prefixed with e-
 type Election struct {
-	Asset      Asset       `json:"Asset"`
-	Candidates []Candidate `json:"Candidates"`
-	EndTime    string      `json:"EndTime"`
-	Name       string      `json:"Name"`
-	StartTime  string      `json:"StartTime"`
+	Asset      Asset    `json:"Asset"`
+	Candidates []string `json:"Candidates"`
+	EndTime    string   `json:"EndTime"`
+	Name       string   `json:"Name"`
+	StartTime  string   `json:"StartTime"`
 }
 
 func (e Election) Type() string {
@@ -59,15 +96,50 @@ func (e Election) Validate() error {
 		return &ObjectValidationError{"missing ID", objectType}
 	}
 
-	if _, err := time.Parse(time.DateTime, e.StartTime); err != nil {
+	startTime, err := time.Parse(time.DateTime, e.StartTime)
+	if err != nil {
 		return &ObjectValidationError{err.Error(), objectType}
 	}
 
-	if _, err := time.Parse(time.DateTime, e.EndTime); err != nil {
+	endTime, err := time.Parse(time.DateTime, e.EndTime)
+	if err != nil {
 		return &ObjectValidationError{err.Error(), objectType}
+	}
+
+	// EndTime must be after StartTime
+	if endTime.Before(startTime) {
+		return &ObjectValidationError{"EndTime must be after StartTime", objectType}
 	}
 
 	return nil
+}
+
+func (e Election) IsEqual(other interface{}) bool {
+	otherObj, ok := other.(Election)
+	if !ok {
+		return false
+	}
+
+	if e.Asset != otherObj.Asset {
+		return false
+	}
+
+	// Check if Candidates slices are equal
+	if len(e.Candidates) != len(otherObj.Candidates) {
+		return false
+	}
+	for i := range e.Candidates {
+		if e.Candidates[i] != otherObj.Candidates[i] {
+			return false
+		}
+	}
+
+	// Check other fields for equality
+	if e.EndTime != otherObj.EndTime || e.Name != otherObj.Name || e.StartTime != otherObj.StartTime {
+		return false
+	}
+
+	return true
 }
 
 func (e Election) IsActive() bool {
@@ -117,6 +189,16 @@ func (c Candidate) Validate() error {
 	return nil
 }
 
+func (c Candidate) IsEqual(other interface{}) bool {
+	otherObj, ok := other.(Candidate)
+	if !ok {
+		return false
+	}
+
+	// No custom checks needed here
+	return c == otherObj
+}
+
 // =============================================================================
 // Ballot
 // =============================================================================
@@ -150,7 +232,36 @@ func (b Ballot) Validate() error {
 	return nil
 }
 
+func (b Ballot) IsEqual(other interface{}) bool {
+	otherObj, ok := other.(Ballot)
+	if !ok {
+		return false
+	}
+
+	// Check if Candidates slices are equal
+	if len(b.Candidates) != len(otherObj.Candidates) {
+		return false
+	}
+	for i := range b.Candidates {
+		if !reflect.DeepEqual(b.Candidates[i], otherObj.Candidates[i]) {
+			return false
+		}
+	}
+
+	// Check other fields for equality
+	if b.ElectionID != otherObj.ElectionID || b.VoterID != otherObj.VoterID || b.Voted != otherObj.Voted {
+		return false
+	}
+
+	return true
+}
+
 func (b *Ballot) Vote(candidateID string) error {
+	if b.Voted {
+		errorMessage := fmt.Sprintf("ballot %s has already been cast! unable to vote", b.Asset.ID)
+		return errors.New(errorMessage)
+	}
+
 	candidateFound := false
 	for i, c := range b.Candidates {
 		if c.Asset.ID == candidateID {
