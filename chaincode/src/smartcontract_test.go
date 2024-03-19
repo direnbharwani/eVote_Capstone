@@ -20,7 +20,7 @@ import (
 func TestCreateBallot(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully create ballot", func(t *testing.T) {
+	t.Run("successfully create ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -41,7 +41,7 @@ func TestCreateBallot(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Fail to create existing ballot", func(t *testing.T) {
+	t.Run("fail to create existing ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -63,7 +63,7 @@ func TestCreateBallot(t *testing.T) {
 		require.EqualError(t, err, expectedError)
 	})
 
-	t.Run("Fail to create invalid ballot", func(t *testing.T) {
+	t.Run("fail to create invalid ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -85,7 +85,7 @@ func TestCreateBallot(t *testing.T) {
 		require.EqualError(t, err, expectedError)
 	})
 
-	t.Run("Fail to create ballot for non-existent election", func(t *testing.T) {
+	t.Run("fail to create ballot for non-existent election", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -109,7 +109,7 @@ func TestCreateBallot(t *testing.T) {
 func TestCreateCandidate(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully create candidate", func(t *testing.T) {
+	t.Run("successfully create candidate", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -127,7 +127,7 @@ func TestCreateCandidate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Fail to create existing candidate", func(t *testing.T) {
+	t.Run("fail to create existing candidate", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -146,7 +146,7 @@ func TestCreateCandidate(t *testing.T) {
 		require.EqualError(t, err, expectedError)
 	})
 
-	t.Run("Fail to create invalid candidate", func(t *testing.T) {
+	t.Run("fail to create invalid candidate", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -172,7 +172,7 @@ func TestCreateCandidate(t *testing.T) {
 func TestCreateElection(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully create election", func(t *testing.T) {
+	t.Run("successfully create election", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -190,7 +190,7 @@ func TestCreateElection(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Fail to create existing election", func(t *testing.T) {
+	t.Run("fail to create existing election", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -209,7 +209,7 @@ func TestCreateElection(t *testing.T) {
 		require.EqualError(t, err, expectedError)
 	})
 
-	t.Run("Fail to create invalid candidate", func(t *testing.T) {
+	t.Run("fail to create invalid candidate", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -239,7 +239,7 @@ func TestCreateElection(t *testing.T) {
 func TestQueryBallot(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully query ballot", func(t *testing.T) {
+	t.Run("successfully query ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -259,7 +259,7 @@ func TestQueryBallot(t *testing.T) {
 		require.Equal(t, *mockBallot, result)
 	})
 
-	t.Run("Fail to query non-existent ballot", func(t *testing.T) {
+	t.Run("fail to query non-existent ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -282,7 +282,7 @@ func TestQueryBallot(t *testing.T) {
 func TestQueryCandidate(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully query candidate", func(t *testing.T) {
+	t.Run("successfully query candidate", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -302,7 +302,7 @@ func TestQueryCandidate(t *testing.T) {
 		require.Equal(t, *mockCandidate, result)
 	})
 
-	t.Run("Fail to query non-existent candidate", func(t *testing.T) {
+	t.Run("fail to query non-existent candidate", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -325,7 +325,7 @@ func TestQueryCandidate(t *testing.T) {
 func TestQueryElection(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully query election", func(t *testing.T) {
+	t.Run("successfully query election", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -345,7 +345,7 @@ func TestQueryElection(t *testing.T) {
 		require.Equal(t, *mockElection, result)
 	})
 
-	t.Run("Fail to query non-existent election", func(t *testing.T) {
+	t.Run("fail to query non-existent election", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -372,7 +372,7 @@ func TestQueryElection(t *testing.T) {
 func TestUpdateBallot(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully to update ballot", func(t *testing.T) {
+	t.Run("successfully to update ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -396,7 +396,7 @@ func TestUpdateBallot(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Fail to update identical ballot data", func(t *testing.T) {
+	t.Run("fail to update identical ballot data", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -415,7 +415,7 @@ func TestUpdateBallot(t *testing.T) {
 		require.EqualError(t, err, expectedError.Error())
 	})
 
-	t.Run("Fail to update non-existent ballot", func(t *testing.T) {
+	t.Run("fail to update non-existent ballot", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -438,7 +438,7 @@ func TestUpdateBallot(t *testing.T) {
 func TestUpdateCandidate(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully update candidate", func(t *testing.T) {
+	t.Run("successfully update candidate", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -462,7 +462,7 @@ func TestUpdateCandidate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Fail to update identical candidate data", func(t *testing.T) {
+	t.Run("fail to update identical candidate data", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -481,7 +481,7 @@ func TestUpdateCandidate(t *testing.T) {
 		require.EqualError(t, err, expectedError.Error())
 	})
 
-	t.Run("Fail to update non-existent candidate", func(t *testing.T) {
+	t.Run("fail to update non-existent candidate", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -504,7 +504,7 @@ func TestUpdateCandidate(t *testing.T) {
 func TestUpdateElection(t *testing.T) {
 	smartContract := chaincode.SmartContract{}
 
-	t.Run("Successfully update Election", func(t *testing.T) {
+	t.Run("successfully update Election", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -528,7 +528,7 @@ func TestUpdateElection(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Fail to update identical election data", func(t *testing.T) {
+	t.Run("fail to update identical election data", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -547,7 +547,7 @@ func TestUpdateElection(t *testing.T) {
 		require.EqualError(t, err, expectedError.Error())
 	})
 
-	t.Run("Fail to update non-existent Election", func(t *testing.T) {
+	t.Run("fail to update non-existent Election", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
@@ -566,7 +566,7 @@ func TestUpdateElection(t *testing.T) {
 		require.EqualError(t, err, expectedError)
 	})
 
-	t.Run("Fail to invalidate existing Election", func(t *testing.T) {
+	t.Run("fail to invalidate existing Election", func(t *testing.T) {
 		// Mocks
 		mockStub := &mocks.ChaincodeStubInterface{}
 		mockCtx := &mocks.TransactionContextInterface{}
