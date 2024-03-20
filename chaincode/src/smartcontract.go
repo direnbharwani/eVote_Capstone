@@ -294,9 +294,11 @@ func (s *SmartContract) DeleteBallot(ctx contractapi.TransactionContextInterface
 }
 
 func deleteAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string) error {
-	compositeKey, err := ctx.GetStub().CreateCompositeKey(updatedAsset.Type(), []string{key})
+	var emptyObject T
+
+	compositeKey, err := ctx.GetStub().CreateCompositeKey(emptyObject.Type(), []string{key})
 	if err != nil {
-		return &CompositeKeyCreationError{err.Error(), key, updatedAsset.Type()}
+		return &CompositeKeyCreationError{err.Error(), key, emptyObject.Type()}
 	}
 
 	currentState, err := ctx.GetStub().GetState(compositeKey)
