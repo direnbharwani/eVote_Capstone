@@ -143,7 +143,12 @@ func (e Election) IsEqual(other interface{}) bool {
 }
 
 func (e Election) IsActive() bool {
-	now := time.Now()
+	loc, err := time.LoadLocation("Asia/Singapore")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	now := time.Now().In(loc)
 
 	start, err := time.Parse(time.DateTime, e.StartTime)
 	if err != nil {

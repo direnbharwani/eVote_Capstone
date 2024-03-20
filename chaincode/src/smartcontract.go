@@ -15,10 +15,15 @@ type SmartContract struct {
 
 // Function to test if the chaincode has been successfully deployed
 func (s *SmartContract) LiveTest() string {
+	loc, err := time.LoadLocation("Asia/Singapore")
+	if err != nil {
+		return err.Error()
+	}
+
 	data := map[string]interface{}{
 		"Name":    "Capstone eVote POC Chaincode",
-		"Version": "v0.1",
-		"Time":    time.Now().Format(time.DateTime),
+		"Version": "v1.2",
+		"Time":    time.Now().In(loc).Format(time.DateTime),
 		"Status":  "Live",
 	}
 
@@ -273,7 +278,44 @@ func updateAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 }
 
 // =============================================================================
-// Update
+// Deletion (only for testing)
+// =============================================================================
+
+func (s *SmartContract) DeleteElection(ctx contractapi.TransactionContextInterface, key string) error {
+	return deleteAsset[Election](ctx, key)
+}
+
+func (s *SmartContract) DeleteCandidate(ctx contractapi.TransactionContextInterface, key string) error {
+	return deleteAsset[Candidate](ctx, key)
+}
+
+func (s *SmartContract) DeleteBallot(ctx contractapi.TransactionContextInterface, key string) error {
+	return deleteAsset[Ballot](ctx, key)
+}
+
+func deleteAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key string) error {
+	compositeKey, err := ctx.GetStub().CreateCompositeKey(updatedAsset.Type(), []string{key})
+	if err != nil {
+		return &CompositeKeyCreationError{err.Error(), key, updatedAsset.Type()}
+	}
+
+	currentState, err := ctx.GetStub().GetState(compositeKey)
+	if err != nil {
+		return &WorldStateInteractionError{err.Error(), key}
+	}
+	if currentState == nil {
+		return &WorldStateReadFailureError{key}
+	}
+
+	if err := ctx.GetStub().DelState(compositeKey); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// =============================================================================
+// Cast Vote
 // =============================================================================
 
 func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, voterID string, ballotID string, candidateID string) error {
