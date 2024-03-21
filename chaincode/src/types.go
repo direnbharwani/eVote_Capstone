@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"reflect"
 	"time"
+
+	paillier "github.com/direnbharwani/go-paillier/pkg"
 )
 
 // ITYPES is a union set type constraint
@@ -167,13 +170,15 @@ func (e Election) IsActive() bool {
 // Candidate
 // =============================================================================
 
-// Defines a electoral candidate
+// Defines a electoral candidate with a public key for encrypting the count.
+// The private key is omitted such that the count cannot be decrypted.
 // Asset ID for Candidates are prefixed with c-
 type Candidate struct {
-	Asset      Asset  `json:"Asset"`
-	Count      uint64 `json:"Count"`
-	ElectionID string `json:"ElectionID"`
-	Name       string `json:"Name"`
+	Asset      Asset               `json:"Asset"`
+	Count      *big.Int            `json:"Count"`
+	ElectionID string              `json:"ElectionID"`
+	Name       string              `json:"Name"`
+	PublicKey  *paillier.PublicKey `json:"PublicKey"`
 }
 
 func (c Candidate) Type() string {
@@ -200,8 +205,50 @@ func (c Candidate) IsEqual(other interface{}) bool {
 		return false
 	}
 
-	// No custom checks needed here
-	return c == otherObj
+	if c.Asset != otherObj.Asset {
+		return false
+	}
+
+	if !c.PublicKey.IsEqual(*otherObj.PublicKey) {
+		return false
+	}
+
+	if c.Count.Cmp(otherObj.Count) != 0 {
+		return false
+	}
+
+	if c.ElectionID != otherObj.ElectionID || c.Name != otherObj.Name {
+		return false
+	}
+
+	return true
+}
+
+func (c *Candidate) Init() error {
+	if c.PublicKey == nil {
+		errorMessage := fmt.Sprintf("candidate %s is missing a public key! Unable to initialise", c.Asset.ID)
+		return errors.New(errorMessage)
+	}
+
+	var err error
+
+	c.Count, err = paillier.Encrypt(c.PublicKey, big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Candidate) IncrementCount() error {
+	if c.PublicKey == nil {
+		errorMessage := fmt.Sprintf("candidate %s is missing a public key! Unable to modify count", c.Asset.ID)
+		return errors.New(errorMessage)
+	}
+
+	c.Count = paillier.AddEncryptedWithPlain(c.PublicKey, c.Count, big.NewInt(1))
+
+	return nil
 }
 
 // =============================================================================
@@ -243,12 +290,16 @@ func (b Ballot) IsEqual(other interface{}) bool {
 		return false
 	}
 
+	if b.Asset != otherObj.Asset {
+		return false
+	}
+
 	// Check if Candidates slices are equal
 	if len(b.Candidates) != len(otherObj.Candidates) {
 		return false
 	}
 	for i := range b.Candidates {
-		if !reflect.DeepEqual(b.Candidates[i], otherObj.Candidates[i]) {
+		if b.Candidates[i].IsEqual(otherObj.Candidates[i]) {
 			return false
 		}
 	}
@@ -272,7 +323,7 @@ func (b *Ballot) Vote(candidateID string) error {
 		if c.Asset.ID == candidateID {
 			candidateFound = true
 
-			b.Candidates[i].Count++
+			b.Candidates[i].IncrementCount()
 			b.Voted = true
 
 			break

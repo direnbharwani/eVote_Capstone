@@ -21,8 +21,8 @@ func (s *SmartContract) LiveTest() string {
 	}
 
 	data := map[string]interface{}{
-		"Name":    "Capstone eVote POC Chaincode",
-		"Version": "v1.2",
+		"Name":    "eVote POC Chaincode",
+		"Version": "v2.0",
 		"Time":    time.Now().In(loc).Format(time.DateTime),
 		"Status":  "Live",
 	}
@@ -58,6 +58,9 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 			return err
 		}
 
+		if err = candidate.Init(); err != nil {
+			return err
+		}
 		ballot.Candidates = append(ballot.Candidates, candidate)
 	}
 
@@ -76,7 +79,7 @@ func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterf
 	}
 
 	// Default state must be 0 count. Count will not change on candidate assets, only in ballots.
-	candidate.Count = 0
+	candidate.Init()
 	return createAsset(ctx, candidate.Asset.ID, candidate)
 }
 
@@ -133,6 +136,18 @@ func (s *SmartContract) QueryElection(ctx contractapi.TransactionContextInterfac
 	return queryAsset[Election](ctx, key)
 }
 
+func (s *SmartContract) QueryBallotHistory(ctx contractapi.TransactionContextInterface, key string) (map[string]Ballot, error) {
+	return queryAssetHistory[Ballot](ctx, key)
+}
+
+func (s *SmartContract) QueryCandidateHistory(ctx contractapi.TransactionContextInterface, key string) (map[string]Candidate, error) {
+	return queryAssetHistory[Candidate](ctx, key)
+}
+
+func (s *SmartContract) QueryElectionHistory(ctx contractapi.TransactionContextInterface, key string) (map[string]Election, error) {
+	return queryAssetHistory[Election](ctx, key)
+}
+
 func (s *SmartContract) QueryAllBallots(ctx contractapi.TransactionContextInterface) ([]Ballot, error) {
 	return queryAssetsByType[Ballot](ctx)
 }
@@ -169,6 +184,38 @@ func queryAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key strin
 	return result, nil
 }
 
+func queryAssetHistory[T ITYPES](ctx contractapi.TransactionContextInterface, key string) (map[string]T, error) {
+	var emptyObject T
+
+	compositeKey, err := ctx.GetStub().CreateCompositeKey(emptyObject.Type(), []string{key})
+	if err != nil {
+		return nil, &CompositeKeyCreationError{err.Error(), key, emptyObject.Type()}
+	}
+
+	assetHistory := make(map[string]T)
+	resultIterator, err := ctx.GetStub().GetHistoryForKey(compositeKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultIterator.Close()
+
+	for resultIterator.HasNext() {
+		assetState, err := resultIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var result T
+		if err = json.Unmarshal(assetState.Value, &result); err != nil {
+			return nil, err
+		}
+
+		assetHistory[assetState.TxId] = result
+	}
+
+	return assetHistory, nil
+}
+
 func queryAssetsByType[T ITYPES](ctx contractapi.TransactionContextInterface) ([]T, error) {
 	var emptyObject T
 
@@ -180,20 +227,16 @@ func queryAssetsByType[T ITYPES](ctx contractapi.TransactionContextInterface) ([
 	defer resultIterator.Close()
 
 	for resultIterator.HasNext() {
-		compositeKey, err := resultIterator.Next()
+		assetState, err := resultIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		_, keys, err := ctx.GetStub().SplitCompositeKey(compositeKey.Key)
-		if err != nil {
+		var result T
+		if err = json.Unmarshal(assetState.Value, &result); err != nil {
 			return nil, err
 		}
 
-		result, err := queryAsset[T](ctx, keys[0])
-		if err != nil {
-			return nil, err
-		}
 		results = append(results, result)
 	}
 
@@ -341,7 +384,7 @@ func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, vo
 		return errors.New(errorMessage)
 	}
 
-	if err := ballot.Vote(candidateID); err != nil {
+	if err = ballot.Vote(candidateID); err != nil {
 		return err
 	}
 

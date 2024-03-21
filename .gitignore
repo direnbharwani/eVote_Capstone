@@ -26,3 +26,6 @@ go.work
 .vscode/
 .zed/
 .idea/
+
+# Keys
+keys/
