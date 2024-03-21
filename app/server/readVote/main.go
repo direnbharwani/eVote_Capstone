@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -45,7 +46,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	chaincodeRequest.Header.Set("Content-Type", "application/json")
-	chaincodeRequest.Header.Set("Authorization", "Basic YTBscXYwZm1nZDo4bHhQY0RGR1RQZVhDd2REblZzMk5ucHJDUVA0VUFtWEExb1MydjhKV1JZ")
+	chaincodeRequest.Header.Set("Authorization", os.Getenv("KALEIDO_AUTH_TOKEN"))
 
 	chaincodeResponse, err := client.Do(chaincodeRequest)
 	if err != nil {

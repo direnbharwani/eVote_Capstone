@@ -8,5 +8,6 @@ READ-VOTE:
         method: post
   environment:
     PAILLIER_PRIVATE_KEY: ${env:PAILLIER_PRIVATE_KEY}
+    KALEIDO_AUTH_TOKEN: ${env:KALEIDO_AUTH_TOKEN}
   package:
     artifact: readVote.zip
