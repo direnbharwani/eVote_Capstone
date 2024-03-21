@@ -3,14 +3,18 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+
+	paillier "github.com/direnbharwani/go-paillier/pkg"
 )
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -37,7 +41,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	chaincodeRequestJSONData, err := json.Marshal(chaincodeRequestBody)
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to stringify chaincode request body: %v", err)
+		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to unparse chaincode request body: %v", err)
 	}
 
 	chaincodeRequest, err := http.NewRequest("POST", "https://a0z8wc2w78-a0ve7t5vxf-connect.au0-aws-ws.kaleido.io/query", bytes.NewBuffer(chaincodeRequestJSONData))
@@ -68,19 +72,61 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	ballot := chaincodeResponseBody.Result
 	responseBody := LambdaResponseBody{BallotID: ballot.Asset.ID}
 
-	for i := range ballot.Candidates {
-		candidate := LambdaResponseCandidate{
-			CandidateID: ballot.Candidates[i].Asset.ID,
-			Name:        ballot.Candidates[i].Name,
-			Voted:       false,
+	if len(ballot.Candidates) != 0 {
+		// Use private key in conjuction with Candidate's public key
+		// to check if candidate has been voted for on a Ballot
+		publicKeyData, err := base64.StdEncoding.DecodeString(ballot.Candidates[0].PublicKey)
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decoding public key: %v", err)
 		}
 
-		responseBody.Candidates = append(responseBody.Candidates, candidate)
+		privateKeyData, err := base64.StdEncoding.DecodeString(os.Getenv("PAILLIER_PRIVATE_KEY"))
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decoding private key: %v", err)
+		}
+
+		publicKey, err := paillier.DeserialiseJSON[paillier.PublicKey](publicKeyData)
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparsing public key: %v", err)
+		}
+
+		privateKey, err := paillier.DeserialiseJSON[paillier.PrivateKey](privateKeyData)
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparsing private key: %v", err)
+		}
+
+		for i := range ballot.Candidates {
+			var voted bool
+
+			encryptedCount, ok := new(big.Int).SetString(ballot.Candidates[i].Count, 10)
+			if !ok {
+				return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error setting candidate count: %v", err)
+			}
+
+			count, err := paillier.Decrypt(publicKey, privateKey, encryptedCount)
+			if err != nil {
+				return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decrypting candidate count: %v", err)
+			}
+
+			if count.Cmp(big.NewInt(0)) == 0 {
+				voted = false
+			} else {
+				voted = true
+			}
+
+			candidate := LambdaResponseCandidate{
+				CandidateID: ballot.Candidates[i].Asset.ID,
+				Name:        ballot.Candidates[i].Name,
+				Voted:       voted,
+			}
+
+			responseBody.Candidates = append(responseBody.Candidates, candidate)
+		}
 	}
 
 	lambdaResponseBodyData, err := json.Marshal(responseBody)
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error stringifying response body: %v", err)
+		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparse response body: %v", err)
 	}
 
 	return events.APIGatewayProxyResponse{
