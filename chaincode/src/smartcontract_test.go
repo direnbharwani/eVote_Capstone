@@ -1,7 +1,6 @@
 package chaincode_test
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,7 +8,6 @@ import (
 
 	chaincode "github.com/direnbharwani/eVote_Capstone/src"
 	mocks "github.com/direnbharwani/eVote_Capstone/src/mocks"
-	paillier "github.com/direnbharwani/go-paillier/pkg"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -621,22 +619,13 @@ func MockBallot() (*chaincode.Ballot, []byte) {
 func MockCandidate() (*chaincode.Candidate, []byte) {
 	id := chaincode.Asset{"c-0"}
 
-	decodedPublicKeyData, err := base64.StdEncoding.DecodeString("eyJOIjozNDMxNzM1NTkxLCJOU3F1YXJlIjoxMTc3NjgwOTE2NjUzNjExOTI4MSwiRyI6MzQzMTczNTU5MiwiTGVuZ3RoIjoxNn0=")
-	if err != nil {
-		log.Fatal(err)
-	}
-	mockPublicKey, err := paillier.DeserialiseJSON[paillier.PublicKey](decodedPublicKeyData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	mock := chaincode.Candidate{
 		Asset:      id,
 		ElectionID: "e-0",
 		Name:       "mockCandidate",
-		PublicKey:  mockPublicKey,
+		PublicKey:  "eyJOIjozNDMxNzM1NTkxLCJOU3F1YXJlIjoxMTc3NjgwOTE2NjUzNjExOTI4MSwiRyI6MzQzMTczNTU5MiwiTGVuZ3RoIjoxNn0=",
 	}
-	if err = mock.Init(); err != nil {
+	if err := mock.Init(); err != nil {
 		log.Fatal(err)
 	}
 
