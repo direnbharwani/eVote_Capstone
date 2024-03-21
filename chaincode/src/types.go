@@ -175,11 +175,11 @@ func (e Election) IsActive() bool {
 // The private key is omitted such that the count cannot be decrypted.
 // Asset ID for Candidates are prefixed with c-
 type Candidate struct {
-	Asset      Asset    `json:"Asset"`
-	Count      *big.Int `json:"Count"`
-	ElectionID string   `json:"ElectionID"`
-	Name       string   `json:"Name"`
-	PublicKey  string   `json:"PublicKey"`
+	Asset      Asset  `json:"Asset"`
+	Count      string `json:"Count"`
+	ElectionID string `json:"ElectionID"`
+	Name       string `json:"Name"`
+	PublicKey  string `json:"PublicKey"`
 }
 
 func (c Candidate) Type() string {
@@ -197,6 +197,10 @@ func (c Candidate) Validate() error {
 		return &ObjectValidationError{"missing ElectionID", objectType}
 	}
 
+	if c.PublicKey == "" {
+		return &ObjectValidationError{"missing Public Key", objectType}
+	}
+
 	return nil
 }
 
@@ -210,11 +214,11 @@ func (c Candidate) IsEqual(other interface{}) bool {
 		return false
 	}
 
-	if c.Count.Cmp(otherObj.Count) != 0 {
+	if c.Count != otherObj.Count || c.ElectionID != otherObj.ElectionID || c.Name != otherObj.Name {
 		return false
 	}
 
-	if c.PublicKey != otherObj.PublicKey || c.ElectionID != otherObj.ElectionID || c.Name != otherObj.Name {
+	if c.PublicKey != otherObj.PublicKey {
 		return false
 	}
 
@@ -222,13 +226,6 @@ func (c Candidate) IsEqual(other interface{}) bool {
 }
 
 func (c *Candidate) Init() error {
-	if c.PublicKey == "" {
-		errorMessage := fmt.Sprintf("candidate %s is missing a public key! Unable to initialise", c.Asset.ID)
-		return errors.New(errorMessage)
-	}
-
-	var err error
-
 	decodedPublicKeyJSON, err := base64.StdEncoding.DecodeString(c.PublicKey)
 	if err != nil {
 		errorMessage := fmt.Sprintf("failed to decode public key for candidate %s! Unable to initialise", c.Asset.ID)
@@ -240,20 +237,17 @@ func (c *Candidate) Init() error {
 		return err
 	}
 
-	c.Count, err = paillier.Encrypt(publicKey, big.NewInt(0))
+	zeroCount, err := paillier.Encrypt(publicKey, big.NewInt(0))
 	if err != nil {
 		return err
 	}
+
+	c.Count = zeroCount.String()
 
 	return nil
 }
 
 func (c *Candidate) IncrementCount() error {
-	if c.PublicKey == "" {
-		errorMessage := fmt.Sprintf("candidate %s is missing a public key! Unable to modify count", c.Asset.ID)
-		return errors.New(errorMessage)
-	}
-
 	decodedPublicKeyJSON, err := base64.StdEncoding.DecodeString(c.PublicKey)
 	if err != nil {
 		errorMessage := fmt.Sprintf("failed to decode public key for candidate %s! Unable to initialise", c.Asset.ID)
@@ -265,7 +259,12 @@ func (c *Candidate) IncrementCount() error {
 		return err
 	}
 
-	c.Count = paillier.AddEncryptedWithPlain(publicKey, c.Count, big.NewInt(1))
+	count, ok := new(big.Int).SetString(c.Count, 10)
+	if !ok {
+		return errors.New("failed to parse candidate count")
+	}
+
+	c.Count = paillier.AddEncryptedWithPlain(publicKey, count, big.NewInt(1)).String()
 
 	return nil
 }

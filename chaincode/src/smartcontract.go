@@ -22,7 +22,7 @@ func (s *SmartContract) LiveTest() string {
 
 	data := map[string]interface{}{
 		"Name":    "eVote POC Chaincode",
-		"Version": "v2.0",
+		"Version": "v2.2.0",
 		"Time":    time.Now().In(loc).Format(time.DateTime),
 		"Status":  "Live",
 	}
@@ -40,7 +40,8 @@ func (s *SmartContract) LiveTest() string {
 // =============================================================================
 
 // Creates a ballot as an asset on the blockchain
-// data must contain Asset.ID, VoterID & ElectionID
+// data must contain Asset.ID & ElectionID
+// No candidates are expected as they will be taken from the Election asset
 func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, data string) error {
 	ballot, err := ParseJSON[Ballot](data)
 	if err != nil {
@@ -51,6 +52,8 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 	if err != nil {
 		return err
 	}
+
+	// TODO: Ensure no duplicate candidates
 
 	for _, candidateID := range election.Candidates {
 		candidate, err := queryAsset[Candidate](ctx, candidateID)
@@ -83,13 +86,14 @@ func (s *SmartContract) CreateCandidate(ctx contractapi.TransactionContextInterf
 	return createAsset(ctx, candidate.Asset.ID, candidate)
 }
 
+// Creates an election as an asset on the blockchain
+// data must contian Asset.ID, StartTime & EndTime.
+// StartTime must be before EndTime.
 func (s *SmartContract) CreateElection(ctx contractapi.TransactionContextInterface, data string) error {
 	election, err := ParseJSON[Election](data)
 	if err != nil {
 		return err
 	}
-
-	// TODO: Sync by fetching all candidates and taking ones with matching electionIDs
 
 	return createAsset(ctx, election.Asset.ID, election)
 }

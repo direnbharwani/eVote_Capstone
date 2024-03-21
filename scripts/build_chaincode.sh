@@ -11,7 +11,7 @@ echo "Building evote_poc chaincode to bin/"
 
 start=$(date +%s%N) # %N for elapsed time in seconds
 
-GOOS=linux GOARCH=amd64 go build -o ./bin/eVote_POC.bin
+GOOS=linux GOARCH=amd64 go build -o ./bin/evote_poc.bin
 
 end=$(date +%s%N)
 
