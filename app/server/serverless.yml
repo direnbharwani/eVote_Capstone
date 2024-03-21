@@ -1,0 +1,22 @@
+service: evote-poc-server
+frameworkVersion: '3'
+
+custom:
+  config:
+    lambda:
+      timeout: 15       # seconds
+      memorySize: 128   # MB
+
+provider:
+  name: aws
+  region: ap-southeast-1      # Singapore
+  runtime: provided.al2023    # OS-only Runtime
+  architecture: arm64
+
+package:
+  individually: true
+  patterns:
+    - '!./**'
+
+functions:
+  read-vote: ${file(./readVote/serverless.yml):READ-VOTE}

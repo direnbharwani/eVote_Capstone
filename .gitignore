@@ -21,6 +21,9 @@ bin/
 # Go workspace file
 go.work
 
+# Serverless Framework Artifaces
+.serverless/
+
 # =============================================================================
 # Editor Specific
 .vscode/

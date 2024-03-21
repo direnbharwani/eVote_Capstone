@@ -1,0 +1,12 @@
+READ-VOTE:
+  handler: bootstrap
+  timeout: ${self:custom.config.lambda.timeout}
+  memorySize: ${self:custom.config.lambda.memorySize}
+  events:
+    - http:
+        path: /readVote
+        method: post
+  environment:
+    PAILLIER_PRIVATE_KEY: ${env:PAILLIER_PRIVATE_KEY}
+  package:
+    artifact: readVote.zip
