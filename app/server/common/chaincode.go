@@ -7,6 +7,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"reflect"
+
+	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
 )
 
 // =============================================================================
@@ -26,18 +29,16 @@ type ChaincodeRequestBody struct {
 	Init    bool                       `json:"init"`
 }
 
-type ChaincodeQueryResponseBody struct {
-	Headers map[string]interface{} `json:"headers"`
-	Result  interface{}            `json:"result"`
-}
-
 // =============================================================================
 // Invocation Methods
 // =============================================================================
 
 // Queries a single object from the blockchain's world state
 // Chaincode name, channel, and init are hardcoded
-func ChaincodeQuery(signer, function string, args []string) (ChaincodeQueryResponseBody, error) {
+func ChaincodeQuery[T chaincode.ITYPES](signer, key string) (T, error) {
+	var emptyObject T
+	var result T
+
 	// Build chaincode request
 	chaincodeInvocationHeaders := ChaincodeInvocationHeaders{
 		Signer:    signer,
@@ -47,19 +48,19 @@ func ChaincodeQuery(signer, function string, args []string) (ChaincodeQueryRespo
 
 	chaincodeRequestBody := ChaincodeRequestBody{
 		Headers: chaincodeInvocationHeaders,
-		Func:    function,
-		Args:    args,
+		Func:    fmt.Sprintf("Query%s", reflect.TypeOf(result).Name()),
+		Args:    []string{key},
 		Init:    false,
 	}
 
 	chaincodeRequestJSONData, err := json.Marshal(chaincodeRequestBody)
 	if err != nil {
-		return ChaincodeQueryResponseBody{}, fmt.Errorf("failed to prepare chaincode request body: %v", err)
+		return emptyObject, fmt.Errorf("failed to prepare chaincode request body: %v", err)
 	}
 
 	chaincodeRequest, err := http.NewRequest("POST", "https://a0z8wc2w78-a0ve7t5vxf-connect.au0-aws-ws.kaleido.io/query", bytes.NewBuffer(chaincodeRequestJSONData))
 	if err != nil {
-		return ChaincodeQueryResponseBody{}, fmt.Errorf("error creating chaincode request: %v", err)
+		return emptyObject, fmt.Errorf("error creating chaincode request: %v", err)
 	}
 
 	chaincodeRequest.Header.Set("Content-Type", "application/json")
@@ -69,29 +70,31 @@ func ChaincodeQuery(signer, function string, args []string) (ChaincodeQueryRespo
 	client := &http.Client{}
 	chaincodeResponse, err := client.Do(chaincodeRequest)
 	if err != nil {
-		return ChaincodeQueryResponseBody{}, fmt.Errorf("error sending chaincode request: %v", err)
+		return emptyObject, fmt.Errorf("error sending chaincode request: %v", err)
 	}
 	defer chaincodeResponse.Body.Close()
 
 	// Parse response
 	chaincodeResponseBodyData, err := io.ReadAll(chaincodeResponse.Body)
 	if err != nil {
-		return ChaincodeQueryResponseBody{}, fmt.Errorf("error chaincode reading response body: %v", err)
+		return emptyObject, fmt.Errorf("error chaincode reading response body: %v", err)
 	}
 
 	// Check for error in response
 	if chaincodeResponse.StatusCode != 200 {
 		var responseBody map[string]interface{}
 		if err = json.Unmarshal(chaincodeResponseBodyData, &responseBody); err != nil {
-			return ChaincodeQueryResponseBody{}, fmt.Errorf("%v", responseBody["error"])
+			return emptyObject, fmt.Errorf("%v", responseBody["error"])
 		}
 	}
 
-	var chaincodeResponseBody ChaincodeQueryResponseBody
+	var chaincodeResponseBody map[string]interface{}
 	err = json.Unmarshal(chaincodeResponseBodyData, &chaincodeResponseBody)
 	if err != nil {
-		return ChaincodeQueryResponseBody{}, fmt.Errorf("error parsing chaincode response: %v", err)
+		return emptyObject, fmt.Errorf("error parsing chaincode response: %v", err)
 	}
 
-	return chaincodeResponseBody, nil
+	// Convert result field to T
+	result = chaincodeResponseBody["result"].(T)
+	return result, nil
 }

@@ -26,12 +26,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	// Invoke Chaincode
-	chaincodeResponseBody, err := common.ChaincodeQuery(requestBody.VoterID, "QueryBallot", []string{requestBody.BallotID})
+	ballot, err := common.ChaincodeQuery[chaincode.Ballot](requestBody.VoterID, requestBody.BallotID)
 	if err != nil {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
 	}
-
-	ballot := chaincodeResponseBody.Result.(chaincode.Ballot)
 
 	if len(ballot.Candidates) == 0 {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error: ballot has no candidates")
