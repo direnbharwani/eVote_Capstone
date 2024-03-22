@@ -88,13 +88,17 @@ func ChaincodeQuery[T chaincode.ITYPES](signer, key string) (T, error) {
 		}
 	}
 
-	var chaincodeResponseBody map[string]interface{}
+	// Temporary struct to convert the type accordingly
+	type ChaincodeQueryRespondeBody struct {
+		Headers map[string]interface{} `json:"headers"`
+		Result  T                      `json:"result"`
+	}
+
+	var chaincodeResponseBody ChaincodeQueryRespondeBody
 	err = json.Unmarshal(chaincodeResponseBodyData, &chaincodeResponseBody)
 	if err != nil {
 		return emptyObject, fmt.Errorf("error parsing chaincode response: %v", err)
 	}
 
-	// Convert result field to T
-	result = chaincodeResponseBody["result"].(T)
-	return result, nil
+	return chaincodeResponseBody.Result, nil
 }
