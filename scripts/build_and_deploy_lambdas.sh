@@ -4,26 +4,26 @@
 # Build readVote
 # =============================================================================
 
-echo "Building readVote..."
+echo "Building read-vote..."
 
-cd app/server/readVote
+cd app/server/read-vote
 
 # build go binary
 GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o bootstrap -tags lambda.norpc main.go
 
 # zip as build artifact for serverless deployment
-zip readVote.zip bootstrap
+zip read-vote.zip bootstrap
 
 # delete built binary & move readVote.zip to root level for deployment
 rm bootstrap
-mv readVote.zip ../readVote.zip
+mv read-vote.zip ../read-vote.zip
 
 # Check if artifact was built from root level
 cd ../../../
-if test -f app/server/readVote.zip; then
-    echo "readVote built!"
+if test -f app/server/read-vote.zip; then
+    echo "read-vote built!"
 else
-    echo "failed to build readVote"
+    echo "failed to build read-vote"
 fi
 
 # =============================================================================
@@ -31,29 +31,29 @@ fi
 # =============================================================================
 
 # =============================================================================
-# Build countVotes
+# Build count-votes
 # =============================================================================
 
-echo "Building countVotes..."
+echo "Building count-votes..."
 
-cd app/server/countVotes
+cd app/server/count-votes
 
 # build go binary
 GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o bootstrap -tags lambda.norpc main.go
 
 # zip as build artifact for serverless deployment
-zip countVotes.zip bootstrap
+zip count-votes.zip bootstrap
 
 # delete built binary & move readVote.zip to root level for deployment
 rm bootstrap
-mv countVotes.zip ../countVotes.zip
+mv count-votes.zip ../count-votes.zip
 
 # Check if artifact was built from root level
 cd ../../../
-if test -f app/server/countVotes.zip; then
-    echo "countVotes built!"
+if test -f app/server/count-votes.zip; then
+    echo "count-votes built!"
 else
-    echo "failed to build countVotes"
+    echo "failed to build count-votes"
 fi
 
 # =============================================================================
@@ -68,5 +68,5 @@ sls deploy
 # Clean Artifacts
 # =============================================================================
 
-rm readVote.zip
-rm countVotes.zip
+rm read-vote.zip
+rm count-votes.zip

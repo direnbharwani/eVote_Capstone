@@ -19,5 +19,5 @@ package:
     - '!./**'
 
 functions:
-  read-vote: ${file(./readVote/serverless.yml):READ-VOTE}
-  count-votes: ${file(./countVotes/serverless.yml):COUNT-VOTES}
+  read-vote: ${file(./read-vote/serverless.yml):READ-VOTE}
+  count-votes: ${file(./count-votes/serverless.yml):COUNT-VOTES}

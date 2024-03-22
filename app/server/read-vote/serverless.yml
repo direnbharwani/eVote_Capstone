@@ -1,13 +1,13 @@
-COUNT-VOTES:
+READ-VOTE:
   handler: bootstrap
   timeout: ${self:custom.config.lambda.timeout}
   memorySize: ${self:custom.config.lambda.memorySize}
   events:
     - http:
-        path: /countVotes
+        path: /read-vote
         method: post
   environment:
     PAILLIER_PRIVATE_KEY: ${env:PAILLIER_PRIVATE_KEY}
     KALEIDO_AUTH_TOKEN: ${env:KALEIDO_AUTH_TOKEN}
   package:
-    artifact: countVotes.zip
+    artifact: read-vote.zip
