@@ -31,9 +31,6 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
 	}
 
-	debugBallot, _ := common.PrettyJSON(ballot)
-	fmt.Println(debugBallot)
-
 	if len(ballot.Candidates) == 0 {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error: ballot has no candidates")
 	}

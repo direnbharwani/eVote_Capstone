@@ -65,9 +65,6 @@ func ChaincodeQuery[T chaincode.ITYPES](signer, authToken, key string) (T, error
 		return emptyObject, fmt.Errorf("error parsing chaincode response: %v", err)
 	}
 
-	debugResponse, _ := PrettyJSON(chaincodeResponseBody)
-	fmt.Println(debugResponse)
-
 	return chaincodeResponseBody.Result, nil
 }
 
@@ -131,6 +128,9 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare chaincode request body: %v", err)
 	}
+
+	fmt.Println(endpoint)
+	fmt.Println(string(chaincodeRequestJSONData))
 
 	chaincodeRequest, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(chaincodeRequestJSONData))
 	if err != nil {
