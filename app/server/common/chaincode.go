@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"reflect"
 
 	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
@@ -43,13 +42,13 @@ type ChaincodeRequestBody struct {
 
 // Queries a single object from the blockchain's world state
 // Chaincode name, channel, and init are hardcoded
-func ChaincodeQuery[T chaincode.ITYPES](signer, key string) (T, error) {
+func ChaincodeQuery[T chaincode.ITYPES](signer, authToken, key string) (T, error) {
 	var emptyObject T
 	var result T
 
 	function := fmt.Sprintf("Query%s", reflect.TypeOf(result).Name())
 
-	chaincodeResponse, err := invokeChaincode(Query, signer, function, []string{key})
+	chaincodeResponse, err := invokeChaincode(Query, signer, authToken, function, []string{key})
 	if err != nil {
 		return emptyObject, fmt.Errorf("%v", err)
 	}
@@ -71,12 +70,12 @@ func ChaincodeQuery[T chaincode.ITYPES](signer, key string) (T, error) {
 
 // Queries a range of objects from the blockchain's world state
 // Chaincode name, channel, and init are hardcoded
-func ChaincodeQueryAll[T chaincode.ITYPES](signer string) ([]T, error) {
+func ChaincodeQueryAll[T chaincode.ITYPES](signer, authToken string) ([]T, error) {
 	var emptyObject T
 
 	function := fmt.Sprintf("QueryAll%ss", reflect.TypeOf(emptyObject).Name())
 
-	chaincodeResponse, err := invokeChaincode(Query, signer, function, []string{})
+	chaincodeResponse, err := invokeChaincode(Query, signer, authToken, function, []string{})
 	if err != nil {
 		return []T{}, fmt.Errorf("%v", err)
 	}
@@ -100,7 +99,7 @@ func ChaincodeQueryAll[T chaincode.ITYPES](signer string) ([]T, error) {
 // Helpers
 // =============================================================================
 
-func invokeChaincode(invokeType InvokeType, signer, function string, args []string) ([]byte, error) {
+func invokeChaincode(invokeType InvokeType, signer, authToken, function string, args []string) ([]byte, error) {
 	endpoint := "https://a0z8wc2w78-a0ve7t5vxf-connect.au0-aws-ws.kaleido.io"
 
 	// Build chaincode request
@@ -136,7 +135,7 @@ func invokeChaincode(invokeType InvokeType, signer, function string, args []stri
 	}
 
 	chaincodeRequest.Header.Set("Content-Type", "application/json")
-	chaincodeRequest.Header.Set("Authorization", os.Getenv("KALEIDO_AUTH_TOKEN"))
+	chaincodeRequest.Header.Set("Authorization", authToken)
 
 	// Invoke chaincode through REST API Gateway to Query State
 	client := &http.Client{}

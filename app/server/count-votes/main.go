@@ -21,7 +21,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to parse request body: %v", err)
 	}
 
-	ballots, err := common.ChaincodeQueryAll[chaincode.Ballot](requestBody.SignerID)
+	ballots, err := common.ChaincodeQueryAll[chaincode.Ballot](requestBody.SignerID, os.Getenv("KALEIDO_AUTH_TOKEN"))
 	if err != nil {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
 	}

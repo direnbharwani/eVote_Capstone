@@ -26,7 +26,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	// Invoke Chaincode
-	ballot, err := common.ChaincodeQuery[chaincode.Ballot](requestBody.VoterID, requestBody.BallotID)
+	ballot, err := common.ChaincodeQuery[chaincode.Ballot](requestBody.VoterID, os.Getenv("KALEIDO_AUTH_TOKEN"), requestBody.BallotID)
 	if err != nil {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
 	}
