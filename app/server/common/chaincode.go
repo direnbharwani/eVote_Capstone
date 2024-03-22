@@ -109,12 +109,16 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 		Chaincode: "evote_poc",
 	}
 
-	if invokeType == Transaction {
-		// Add type to header
-		chaincodeInvocationHeaders.Type = "SendTransaction"
-		endpoint += "/query"
-	} else {
-		endpoint += "/transactions"
+	switch invokeType {
+	case Transaction:
+		{
+			chaincodeInvocationHeaders.Type = "SendTransaction"
+			endpoint += "/transactions"
+		}
+	case Query:
+		{
+			endpoint += "/query"
+		}
 	}
 
 	chaincodeRequestBody := ChaincodeRequestBody{
@@ -161,6 +165,8 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 			return nil, fmt.Errorf("%v", responseBody["error"])
 		}
 	}
+
+	fmt.Println(string(chaincodeRequestJSONData))
 
 	return chaincodeResponseBodyData, nil
 }
