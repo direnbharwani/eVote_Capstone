@@ -1,21 +1,23 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/big"
-	"net/http"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
+	"github.com/direnbharwani/evote-capstone/app/server/common"
+	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
 	paillier "github.com/direnbharwani/go-paillier/pkg"
 )
+
+// ======================================================================================
+// Lambda Definition
+// ======================================================================================
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var requestBody LambdaRequestBody
@@ -23,105 +25,50 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to parse request body: %v", err)
 	}
 
-	// Invoke chaincode through REST API Gateway to Query Ballot State
-	client := &http.Client{}
-
-	chaincodeInvocationHeaders := ChaincodeInvocationHeaders{
-		Signer:    requestBody.VoterID,
-		Channel:   "default-channel",
-		Chaincode: "evote_poc",
-	}
-
-	chaincodeRequestBody := ChaincodeRequestBody{
-		Headers: chaincodeInvocationHeaders,
-		Func:    "QueryBallot",
-		Args:    []string{requestBody.BallotID},
-		Init:    false,
-	}
-
-	chaincodeRequestJSONData, err := json.Marshal(chaincodeRequestBody)
+	// Invoke Chaincode
+	chaincodeResponseBody, err := common.ChaincodeQuery(requestBody.VoterID, "QueryBallot", []string{requestBody.BallotID})
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to unparse chaincode request body: %v", err)
+		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
 	}
 
-	chaincodeRequest, err := http.NewRequest("POST", "https://a0z8wc2w78-a0ve7t5vxf-connect.au0-aws-ws.kaleido.io/query", bytes.NewBuffer(chaincodeRequestJSONData))
+	ballot := chaincodeResponseBody.Result.(chaincode.Ballot)
+
+	if len(ballot.Candidates) == 0 {
+		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error: ballot has no candidates")
+	}
+
+	// Use private key in conjuction with Candidate's public key
+	// to check if candidate has been voted for on a Ballot
+	publicKey, privateKey, err := common.DecodeKeys(ballot.Candidates[0].PublicKey, os.Getenv("PAILLIER_PRIVATE_KEY"))
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error creating chaincode request: %v", err)
+		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
 	}
 
-	chaincodeRequest.Header.Set("Content-Type", "application/json")
-	chaincodeRequest.Header.Set("Authorization", os.Getenv("KALEIDO_AUTH_TOKEN"))
-
-	chaincodeResponse, err := client.Do(chaincodeRequest)
-	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error sending chaincode request: %v", err)
-	}
-	defer chaincodeResponse.Body.Close()
-
-	chaincodeResponseBodyData, err := io.ReadAll(chaincodeResponse.Body)
-	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error chaincode reading response body: %v", err)
-	}
-
-	var chaincodeResponseBody ChaincodeQueryResponseBody
-	err = json.Unmarshal(chaincodeResponseBodyData, &chaincodeResponseBody)
-	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error parsing chaincode response body: %v", err)
-	}
-
-	ballot := chaincodeResponseBody.Result
 	responseBody := LambdaResponseBody{BallotID: ballot.Asset.ID}
 
-	if len(ballot.Candidates) != 0 {
-		// Use private key in conjuction with Candidate's public key
-		// to check if candidate has been voted for on a Ballot
-		publicKeyData, err := base64.StdEncoding.DecodeString(ballot.Candidates[0].PublicKey)
+	for i := range ballot.Candidates {
+		decryptedCandidate := LambdaResponseCandidate{
+			CandidateID: ballot.Candidates[i].Asset.ID,
+			Name:        ballot.Candidates[i].Name,
+		}
+
+		encryptedCount, ok := new(big.Int).SetString(ballot.Candidates[i].Count, 10)
+		if !ok {
+			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to parse candiate count")
+		}
+
+		count, err := paillier.Decrypt(publicKey, privateKey, encryptedCount)
 		if err != nil {
-			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decoding public key: %v", err)
+			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decrypting candidate count: %v", err)
 		}
 
-		privateKeyData, err := base64.StdEncoding.DecodeString(os.Getenv("PAILLIER_PRIVATE_KEY"))
-		if err != nil {
-			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decoding private key: %v", err)
+		if count.Cmp(big.NewInt(0)) == 0 {
+			decryptedCandidate.Voted = false
+		} else {
+			decryptedCandidate.Voted = true
 		}
 
-		publicKey, err := paillier.DeserialiseJSON[paillier.PublicKey](publicKeyData)
-		if err != nil {
-			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparsing public key: %v", err)
-		}
-
-		privateKey, err := paillier.DeserialiseJSON[paillier.PrivateKey](privateKeyData)
-		if err != nil {
-			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparsing private key: %v", err)
-		}
-
-		for i := range ballot.Candidates {
-			var voted bool
-
-			encryptedCount, ok := new(big.Int).SetString(ballot.Candidates[i].Count, 10)
-			if !ok {
-				return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error setting candidate count: %v", err)
-			}
-
-			count, err := paillier.Decrypt(publicKey, privateKey, encryptedCount)
-			if err != nil {
-				return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decrypting candidate count: %v", err)
-			}
-
-			if count.Cmp(big.NewInt(0)) == 0 {
-				voted = false
-			} else {
-				voted = true
-			}
-
-			candidate := LambdaResponseCandidate{
-				CandidateID: ballot.Candidates[i].Asset.ID,
-				Name:        ballot.Candidates[i].Name,
-				Voted:       voted,
-			}
-
-			responseBody.Candidates = append(responseBody.Candidates, candidate)
-		}
+		responseBody.Candidates = append(responseBody.Candidates, decryptedCandidate)
 	}
 
 	lambdaResponseBodyData, err := json.Marshal(responseBody)
@@ -139,9 +86,9 @@ func main() {
 	lambda.Start(Handler)
 }
 
-// ======================================================================================
-// HTTP Types
-// ======================================================================================
+// =============================================================================
+// API Types
+// =============================================================================
 
 type LambdaRequestBody struct {
 	VoterID    string `json:"VoterID"`
@@ -158,48 +105,4 @@ type LambdaResponseCandidate struct {
 	CandidateID string `json:"CandidateID"`
 	Name        string `json:"Name"`
 	Voted       bool   `json:"Voted"`
-}
-
-type ChaincodeInvocationHeaders struct {
-	Signer    string `json:"signer"`
-	Channel   string `json:"channel"`
-	Chaincode string `json:"chaincode"`
-}
-
-type ChaincodeRequestBody struct {
-	Headers ChaincodeInvocationHeaders `json:"headers"`
-	Func    string                     `json:"func"`
-	Args    []string                   `json:"args"`
-	Init    bool                       `json:"init"`
-}
-
-type ChaincodeQueryResponseBody struct {
-	Headers map[string]interface{} `json:"headers"`
-	Result  ChaincodeBallot        `json:"result"`
-}
-
-// ======================================================================================
-// Chaincode Types For Deserialisation
-// ======================================================================================
-
-// TODO: There must be a better way to handle this
-
-type Asset struct {
-	ID string `json:"ID"`
-}
-
-type ChaincodeCandidate struct {
-	Asset      Asset  `json:"Asset"`
-	Count      string `json:"Count"`
-	ElectionID string `json:"ElectionID"`
-	Name       string `json:"Name"`
-	PublicKey  string `json:"PublicKey"`
-}
-
-type ChaincodeBallot struct {
-	Asset      Asset                `json:"Asset"`
-	Candidates []ChaincodeCandidate `json:"Candidates"`
-	ElectionID string               `json:"ElectionID"`
-	VoterID    string               `json:"VoterID"`
-	Voted      bool                 `json:"Voted"`
 }
