@@ -1,7 +1,6 @@
 package chaincode
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -9,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	paillier "github.com/direnbharwani/go-paillier/pkg"
+	paillier "github.com/direnbharwani/evote-capstone/paillier"
 )
 
 // ITYPES is a union set type constraint
@@ -226,13 +225,7 @@ func (c Candidate) IsEqual(other interface{}) bool {
 }
 
 func (c *Candidate) Init() error {
-	decodedPublicKeyJSON, err := base64.StdEncoding.DecodeString(c.PublicKey)
-	if err != nil {
-		errorMessage := fmt.Sprintf("failed to decode public key for candidate %s! Unable to initialise", c.Asset.ID)
-		return errors.New(errorMessage)
-	}
-
-	publicKey, err := paillier.DeserialiseJSON[paillier.PublicKey](decodedPublicKeyJSON)
+	publicKey, err := paillier.Base64Decode[paillier.PublicKey](c.PublicKey)
 	if err != nil {
 		return err
 	}
@@ -248,13 +241,7 @@ func (c *Candidate) Init() error {
 }
 
 func (c *Candidate) IncrementCount() error {
-	decodedPublicKeyJSON, err := base64.StdEncoding.DecodeString(c.PublicKey)
-	if err != nil {
-		errorMessage := fmt.Sprintf("failed to decode public key for candidate %s! Unable to initialise", c.Asset.ID)
-		return errors.New(errorMessage)
-	}
-
-	publicKey, err := paillier.DeserialiseJSON[paillier.PublicKey](decodedPublicKeyJSON)
+	publicKey, err := paillier.Base64Decode[paillier.PublicKey](c.PublicKey)
 	if err != nil {
 		return err
 	}

@@ -13,7 +13,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	paillier "github.com/direnbharwani/go-paillier/pkg"
+	paillier "github.com/direnbharwani/evote-capstone/paillier"
 )
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -93,12 +93,12 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decoding private key: %v", err)
 	}
 
-	publicKey, err := paillier.DeserialiseJSON[paillier.PublicKey](publicKeyData)
+	publicKey, err := paillier.DeserialiseFromJSON[paillier.PublicKey](publicKeyData)
 	if err != nil {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparsing public key: %v", err)
 	}
 
-	privateKey, err := paillier.DeserialiseJSON[paillier.PrivateKey](privateKeyData)
+	privateKey, err := paillier.DeserialiseFromJSON[paillier.PrivateKey](privateKeyData)
 	if err != nil {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparsing private key: %v", err)
 	}

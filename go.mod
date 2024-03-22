@@ -4,7 +4,6 @@ go 1.21.6
 
 require (
 	github.com/aws/aws-lambda-go v1.46.0
-	github.com/direnbharwani/go-paillier v0.0.0-20240320192026-da8124dc5561
 	github.com/hyperledger/fabric-chaincode-go v0.0.0-20240124143825-7dec3c7e7d45
 	github.com/hyperledger/fabric-contract-api-go v1.2.2
 	github.com/hyperledger/fabric-protos-go v0.3.3

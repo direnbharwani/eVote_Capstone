@@ -12,7 +12,7 @@ import (
 
 	"github.com/direnbharwani/evote-capstone/app/server/common"
 	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
-	paillier "github.com/direnbharwani/go-paillier/pkg"
+	paillier "github.com/direnbharwani/evote-capstone/paillier"
 )
 
 // ======================================================================================
