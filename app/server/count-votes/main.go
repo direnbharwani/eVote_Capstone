@@ -34,7 +34,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	ballotsToCount := []chaincode.Ballot{}
 
 	for i := range ballots {
-		if ballots[i].ElectionID != requestBody.ElectionID {
+		if ballots[i].ElectionID == requestBody.ElectionID {
 			ballotsToCount = append(ballotsToCount, ballots[i])
 		}
 	}
