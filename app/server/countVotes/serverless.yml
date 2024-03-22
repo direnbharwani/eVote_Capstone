@@ -1,4 +1,4 @@
-READ-VOTE:
+COUNT-VOTES:
   handler: bootstrap
   timeout: ${self:custom.config.lambda.timeout}
   memorySize: ${self:custom.config.lambda.memorySize}
