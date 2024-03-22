@@ -15,12 +15,3 @@ func ParseJSON[T ITYPES](data string) (T, error) {
 
 	return result, nil
 }
-
-func PrettyJson(data interface{}) (string, error) {
-	val, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		return "", err
-	}
-
-	return string(val), nil
-}

@@ -1,7 +1,7 @@
 package main
 
 import (
-	chaincode "github.com/direnbharwani/eVote_Capstone/src"
+	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )

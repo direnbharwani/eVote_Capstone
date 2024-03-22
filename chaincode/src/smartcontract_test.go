@@ -6,8 +6,8 @@ import (
 	"log"
 	"testing"
 
-	chaincode "github.com/direnbharwani/eVote_Capstone/src"
-	mocks "github.com/direnbharwani/eVote_Capstone/src/mocks"
+	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
+	mocks "github.com/direnbharwani/evote-capstone/chaincode/src/mocks"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
