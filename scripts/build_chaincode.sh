@@ -1,11 +1,9 @@
 #!/bin/bash
-cd ../chaincode
+cd chaincode
 
 if [ ! -d ./bin/ ]; then
     mkdir bin
 fi
-# Grant write permissions to bin
-chmod u+w ./bin/
 
 echo "Building evote_poc chaincode to bin/"
 

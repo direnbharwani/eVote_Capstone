@@ -130,7 +130,7 @@ func invokeChaincode(invokeType InvokeType, signer, function string, args []stri
 		return nil, fmt.Errorf("failed to prepare chaincode request body: %v", err)
 	}
 
-	chaincodeRequest, err := http.NewRequest("POST", "", bytes.NewBuffer(chaincodeRequestJSONData))
+	chaincodeRequest, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(chaincodeRequestJSONData))
 	if err != nil {
 		return nil, fmt.Errorf("error creating chaincode request: %v", err)
 	}
