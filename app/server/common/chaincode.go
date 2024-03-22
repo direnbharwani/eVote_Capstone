@@ -65,6 +65,9 @@ func ChaincodeQuery[T chaincode.ITYPES](signer, authToken, key string) (T, error
 		return emptyObject, fmt.Errorf("error parsing chaincode response: %v", err)
 	}
 
+	debugResponse, _ := PrettyJSON(chaincodeResponseBody)
+	fmt.Println(debugResponse)
+
 	return chaincodeResponseBody.Result, nil
 }
 
