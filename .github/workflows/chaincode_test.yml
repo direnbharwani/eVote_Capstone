@@ -1,0 +1,26 @@
+name: Chaincode Unit Testing
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/chaincode-test.yml'
+      - 'chaincode/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.21.0'
+          cache-dependency-path: chaincode/go.sum
+
+      - name: Run Chaincode Unit Tests
+        run: |
+          cd chaincode/src
+          go test -v

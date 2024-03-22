@@ -53,7 +53,8 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	// TODO: Ensure no duplicate candidates
+	// Clear the ballot slice to ensure no duplicate candides
+	ballot.Candidates = ballot.Candidates[:0]
 
 	for _, candidateID := range election.Candidates {
 		candidate, err := queryAsset[Candidate](ctx, candidateID)
@@ -364,7 +365,7 @@ func deleteAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 }
 
 // =============================================================================
-// Cast Vote
+// Specific Methods
 // =============================================================================
 
 func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, voterID string, ballotID string, candidateID string) error {
@@ -393,4 +394,33 @@ func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, vo
 	}
 
 	return updateAsset[Ballot](ctx, ballot.Asset.ID, ballot)
+}
+
+func (s *SmartContract) SyncElectionAndCandidates(ctx contractapi.TransactionContextInterface, electionID string) error {
+	election, err := queryAsset[Election](ctx, electionID)
+	if err != nil {
+		return err
+	}
+
+	allCandidates, err := queryAssetsByType[Candidate](ctx)
+	if err != nil {
+		return err
+	}
+
+	// Update election with candidates assigned to it
+	// We clear the candidate slice in the election to prevent duplicates
+	election.Candidates = election.Candidates[:0]
+	for i := range allCandidates {
+		if allCandidates[i].ElectionID != electionID {
+			continue
+		}
+
+		election.Candidates = append(election.Candidates, allCandidates[i].Asset.ID)
+	}
+
+	if err = updateAsset[Election](ctx, election.Asset.ID, election); err != nil {
+		return err
+	}
+
+	return nil
 }
