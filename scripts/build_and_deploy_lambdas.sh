@@ -34,6 +34,28 @@ fi
 # Build countVotes
 # =============================================================================
 
+echo "Building countVotes..."
+
+cd app/server/countVotes
+
+# build go binary
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o bootstrap -tags lambda.norpc main.go
+
+# zip as build artifact for serverless deployment
+zip countVotes.zip bootstrap
+
+# delete built binary & move readVote.zip to root level for deployment
+rm bootstrap
+mv countVotes.zip ../countVotes.zip
+
+# Check if artifact was built from root level
+cd ../../../
+if test -f app/server/countVotes.zip; then
+    echo "countVotes built!"
+else
+    echo "failed to build countVotes"
+fi
+
 # =============================================================================
 # Serverless Deployment
 # =============================================================================
@@ -47,3 +69,4 @@ sls deploy
 # =============================================================================
 
 rm readVote.zip
+rm countVotes.zip
