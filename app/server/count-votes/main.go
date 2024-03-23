@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -20,6 +21,8 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if err := json.Unmarshal([]byte(request.Body), &requestBody); err != nil {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to parse request body: %v", err)
 	}
+
+	startTime := time.Now()
 
 	ballots, err := common.ChaincodeQueryAll[chaincode.Ballot](requestBody.SignerID, os.Getenv("KALEIDO_AUTH_TOKEN"))
 	if err != nil {
@@ -66,7 +69,19 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}
 	}
 
-	lambdaResponseBodyData, err := json.Marshal(LambdaResponseBody{results})
+	endTime := time.Now()
+
+	duration := endTime.Sub(startTime)
+
+	minutes := int(duration.Minutes())
+	seconds := duration.Seconds() - float64(minutes)*60.0
+
+	responseBody := LambdaResponseBody{
+		Duration: fmt.Sprintf("%d min %.4f sec", minutes, seconds),
+		Results:  results,
+	}
+
+	lambdaResponseBodyData, err := json.Marshal(responseBody)
 	if err != nil {
 		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparse response body: %v", err)
 	}
@@ -153,7 +168,8 @@ type LambdaRequestBody struct {
 }
 
 type LambdaResponseBody struct {
-	Candidates []LambdaResponseCandidate `json:"Candidates"`
+	Duration string                    `json:"Duration"`
+	Results  []LambdaResponseCandidate `json:"Results"`
 }
 
 type LambdaResponseCandidate struct {
