@@ -1,11 +1,14 @@
 package chaincode
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
@@ -22,7 +25,7 @@ func (s *SmartContract) LiveTest() string {
 
 	data := map[string]interface{}{
 		"Name":    "eVote POC Chaincode",
-		"Version": "v2.2.0",
+		"Version": "v2.4.1-performance-test",
 		"Time":    time.Now().In(loc).Format(time.DateTime),
 		"Status":  "Live",
 	}
@@ -204,19 +207,24 @@ func queryAssetHistory[T ITYPES](ctx contractapi.TransactionContextInterface, ke
 	}
 	defer resultIterator.Close()
 
+	// We continue on errors to avoid returning an error due to deleted assets
 	for resultIterator.HasNext() {
 		assetState, err := resultIterator.Next()
 		if err != nil {
-			return nil, err
+			fmt.Printf("failed to retrieve state for %s %s\n", emptyObject.Type(), key)
+			continue
 		}
 
 		var result T
 		if err = json.Unmarshal(assetState.Value, &result); err != nil {
-			return nil, err
+			fmt.Printf("failed to parse state for %s %s\n", emptyObject.Type(), key)
+			continue
 		}
 
 		assetHistory[assetState.TxId] = result
 	}
+
+	// TODO: Sort the transactions by their timestamp, from earliest (at 0) to latest (at len-1)
 
 	return assetHistory, nil
 }
@@ -326,7 +334,7 @@ func updateAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 }
 
 // =============================================================================
-// Deletion (only for testing)
+// Delete (only for testing)
 // =============================================================================
 
 func (s *SmartContract) DeleteElection(ctx contractapi.TransactionContextInterface, key string) error {
@@ -365,9 +373,12 @@ func deleteAsset[T ITYPES](ctx contractapi.TransactionContextInterface, key stri
 }
 
 // =============================================================================
-// Specific Methods
+// Custom Methods
 // =============================================================================
 
+// Casts a vote for a ballot.
+// This function will assert that the ballot has been assigned to voterID and has a matching candidate with candidateID.
+// This function will return an error if the vote has already been cast.
 func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, voterID string, ballotID string, candidateID string) error {
 	ballot, err := queryAsset[Ballot](ctx, ballotID)
 	if err != nil {
@@ -393,9 +404,10 @@ func (s *SmartContract) CastVote(ctx contractapi.TransactionContextInterface, vo
 		return err
 	}
 
-	return updateAsset[Ballot](ctx, ballot.Asset.ID, ballot)
+	return updateAsset(ctx, ballot.Asset.ID, ballot)
 }
 
+// Helper function to sync the election and candidates. Duplicates are aptly handled.
 func (s *SmartContract) SyncElectionAndCandidates(ctx contractapi.TransactionContextInterface, electionID string) error {
 	election, err := queryAsset[Election](ctx, electionID)
 	if err != nil {
@@ -418,7 +430,195 @@ func (s *SmartContract) SyncElectionAndCandidates(ctx contractapi.TransactionCon
 		election.Candidates = append(election.Candidates, allCandidates[i].Asset.ID)
 	}
 
-	if err = updateAsset[Election](ctx, election.Asset.ID, election); err != nil {
+	if err = updateAsset(ctx, election.Asset.ID, election); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// =============================================================================
+// Performance Testing
+// =============================================================================
+
+func (s *SmartContract) SetupPerformanceTestElection(ctx contractapi.TransactionContextInterface, voterID string, numBallots int, numCandidates int) (string, error) {
+
+	// Setup Election with no candidates
+	electionID, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
+
+	election := Election{
+		Asset:     Asset{ID: "e-" + electionID.String()},
+		EndTime:   "2024-03-24 23:59:59",
+		StartTime: "2024-03-23 00:00:00",
+	}
+
+	// Create candidates
+	candidates := []Candidate{}
+
+	for i := 0; i < numCandidates; i++ {
+		candidateID, err := uuid.NewV7()
+		if err != nil {
+			return "", err
+		}
+
+		candidate := Candidate{
+			Asset:      Asset{ID: "c-" + candidateID.String()},
+			ElectionID: election.Asset.ID,
+			Name:       fmt.Sprintf("performanceTestCandidate%d", i),
+			PublicKey:  "eyJOIjoxMDA5ODc4ODk1NjcwMjc2NjY5OTQzMzg2Njk3MjUzNDA1ODMxNjE2NDY3MjMwODgyNDg5MjIyMzI4ODc4NjI3NDE4Nzg2MDExODQ3MDcsIk5TcXVhcmUiOjEwMTk4NTUzODM5MjAyMTc1NTEwMjI2ODQ5NTUwMzAzMzM3ODAzNTY2MTUwNjE4NTE0NDY0NTM1NTk1NDEwNjE0MzQ3NzIxNjU5NjgyNjY2ODE1NTExMTIzMzgyNzcxMzczMjE5NzA4OTYzMzQwOTcxODY2NzYxNjM4NzE4NDA5MDA2MDE5NTQ4NjQ1NTQyNTQzOTMwNjc1ODQ5LCJHIjoxMDA5ODc4ODk1NjcwMjc2NjY5OTQzMzg2Njk3MjUzNDA1ODMxNjE2NDY3MjMwODgyNDg5MjIyMzI4ODc4NjI3NDE4Nzg2MDExODQ3MDgsIkxlbmd0aCI6MTI4fQ==",
+		}
+
+		election.Candidates = append(election.Candidates, candidate.Asset.ID)
+		candidates = append(candidates, candidate)
+
+		if err = candidate.Init(); err != nil {
+			return "", err
+		}
+		if err = createAsset(ctx, candidate.Asset.ID, candidate); err != nil {
+			return "", err
+		}
+
+	}
+
+	// Create election
+	if err = createAsset(ctx, election.Asset.ID, election); err != nil {
+		return "", err
+	}
+
+	// Create 100 ballots
+	for i := 0; i < numBallots; i++ {
+		ballotID, err := uuid.NewV7()
+		if err != nil {
+			return "", err
+		}
+
+		ballot := Ballot{
+			Asset:      Asset{ID: "b-" + ballotID.String()},
+			Candidates: candidates,
+			ElectionID: election.Asset.ID,
+			VoterID:    voterID,
+		}
+
+		for i := range ballot.Candidates {
+			if err = ballot.Candidates[i].Init(); err != nil {
+				return "", err
+			}
+		}
+
+		if err = createAsset(ctx, ballot.Asset.ID, ballot); err != nil {
+			return "", err
+		}
+	}
+
+	return election.Asset.ID, nil
+}
+
+func (s *SmartContract) CastVotesForPerformanceTestElection(ctx contractapi.TransactionContextInterface, electionID string) error {
+	election, err := queryAsset[Election](ctx, electionID)
+	if err != nil {
+		return err
+	}
+
+	var emptyBallot Ballot
+
+	// Get all ballots from this election
+	resultIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(emptyBallot.Type(), []string{})
+	if err != nil {
+		return err
+	}
+	defer resultIterator.Close()
+
+	for resultIterator.HasNext() {
+		assetState, err := resultIterator.Next()
+		if err != nil {
+			return err
+		}
+
+		var ballot Ballot
+		if err = json.Unmarshal(assetState.Value, &ballot); err != nil {
+			return err
+		}
+
+		// Ensure it matches this election
+		if ballot.ElectionID == electionID {
+			// RNG the candidateID
+			numCandidates := int64(len(election.Candidates))
+
+			index, err := rand.Int(rand.Reader, big.NewInt(numCandidates))
+			if err != nil {
+				return err
+			}
+
+			candidateID := election.Candidates[index.Int64()]
+
+			// Cast Vote
+			if err = ballot.Vote(candidateID); err != nil {
+				return err
+			}
+
+			// Update ballot
+			if err = updateAsset(ctx, ballot.Asset.ID, ballot); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *SmartContract) CleanUpPerformanceTestElection(ctx contractapi.TransactionContextInterface, electionID string) error {
+	// Get all ballot IDs
+	var emptyBallot Ballot
+
+	// Get all ballots from this election
+	ballotIDsToDelete := []string{}
+	resultIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(emptyBallot.Type(), []string{})
+	if err != nil {
+		return err
+	}
+	defer resultIterator.Close()
+
+	for resultIterator.HasNext() {
+		assetState, err := resultIterator.Next()
+		if err != nil {
+			return err
+		}
+
+		var ballot Ballot
+		if err = json.Unmarshal(assetState.Value, &ballot); err != nil {
+			return err
+		}
+
+		if ballot.ElectionID == electionID {
+			ballotIDsToDelete = append(ballotIDsToDelete, ballot.Asset.ID)
+		}
+	}
+
+	// Get candidate IDs
+	election, err := queryAsset[Election](ctx, electionID)
+	if err != nil {
+		return err
+	}
+
+	// Delete ballots
+	for _, id := range ballotIDsToDelete {
+		if err = deleteAsset[Ballot](ctx, id); err != nil {
+			return err
+		}
+	}
+
+	// Delete candidates
+	for _, id := range election.Candidates {
+		if err = deleteAsset[Candidate](ctx, id); err != nil {
+			return err
+		}
+	}
+
+	// Delete election
+	if err = deleteAsset[Election](ctx, electionID); err != nil {
 		return err
 	}
 
