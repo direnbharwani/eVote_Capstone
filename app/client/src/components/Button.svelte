@@ -1,7 +1,7 @@
 <!-- src/components/Button.svelte -->
 
 <script>
-    import { Link } from 'svelte-routing';
+    import { Link } from "svelte-routing";
 
     export let label = "Button";
     export let type = "button";
@@ -21,13 +21,12 @@
     </button>
 </Link>
 
-
 <style>
     /* Add your button styles here */
     button {
-        width: 50%;
+        width: auto;
         padding: 20px;
-        margin-top: 25%;
+        margin-top: 10%;
         font-family: Josefin Sans;
         font-size: 1.5em;
         border-radius: 10px;
