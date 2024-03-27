@@ -1,7 +1,11 @@
 <script>
-	import Login from './pages/Login.svelte'
+	import { Router, Route } from 'svelte-routing';
+
+	import Login from './pages/Login.svelte';
+	import Ballot from './pages/Ballot.svelte';
 </script>
 
-<main>
-	<Login />
-</main>
+<Router>
+	<Route path="/" component={Login}/>
+	<Route path="/ballot" component={Ballot}/>
+</Router>

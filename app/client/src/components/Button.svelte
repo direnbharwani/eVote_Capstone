@@ -1,9 +1,12 @@
 <!-- src/components/Button.svelte -->
 
 <script>
+    import { Link } from 'svelte-routing';
+
     export let label = "Button";
     export let type = "button";
     export let onClick;
+    export let linkTo = "/";
 
     function handleClick() {
         if (onClick) {
@@ -12,9 +15,12 @@
     }
 </script>
 
-<button {type} on:click={handleClick}>
-    {label}
-</button>
+<Link to={linkTo}>
+    <button {type} on:click={handleClick}>
+        {label}
+    </button>
+</Link>
+
 
 <style>
     /* Add your button styles here */

@@ -2,9 +2,24 @@
 <script>
     import Button from '../components/Button.svelte'
 
+    let userID;
+    let password;   // Used for validation since html does not enforce min and max lengthss
+
     function handleLogin() {
-        document.getElementById("out").innerHTML = "continue!";
-        console.log("Login clicked!");
+        if (userID == null || userID.length < 6) {
+            alert("Login ID must be more than 6 characters long");
+            preventDefault();
+            return;
+        }
+
+        if (password == null || password.length < 8 || password.length > 20) {
+            alert("Password must be between 8 and 20 characters long");
+            preventDefault();
+            return;
+        }
+
+        sessionStorage.setItem("userID", userID);
+        console.log("Logging in user: ", userID);
     }
 </script>
 
@@ -20,18 +35,18 @@
                 <label class="login-label" for="login-id-input-text-box" id="login-id-label">
                     Login ID
                 </label>
-                <input type="username" class="login-input-box" id="login-id-input-text-box" minlength="6">
+                <input type="username" bind:value={userID} class="login-input-box" id="login-id-input-text-box" minlength="6">
             </div>
     
             <div class="input-container">
                 <label class="login-label" for="password-input-text-box" id="password-label">
                     Password
                 </label>
-                <input type="password" class="login-input-box" id="password-input-text-box" minlength="8"
+                <input type="password" bind:value={password} class="login-input-box" id="password-input-text-box" minlength="8"
                     maxlength="20">
             </div>
     
-            <Button label="Continue" onClick={handleLogin} />
+            <Button label="Continue" linkTo={"/ballot"} onClick={handleLogin} />
     
             <p id="out"></p>
         </div>
