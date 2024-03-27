@@ -8,13 +8,13 @@
     function handleLogin() {
         if (userID == null || userID.length < 6) {
             alert("Login ID must be more than 6 characters long");
-            preventDefault();
+            event.preventDefault();
             return;
         }
 
         if (password == null || password.length < 8 || password.length > 20) {
             alert("Password must be between 8 and 20 characters long");
-            preventDefault();
+            event.preventDefault();
             return;
         }
 
