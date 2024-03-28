@@ -7,6 +7,26 @@
     let userID;
     let password; // Used for validation since html does not enforce min and max lengths
 
+    // Hardcoded: Remove when ready
+    let users = [
+        {
+            "voterID": "testVoter0",
+            "ballotID": "b-test5-0"
+        },
+        {
+            "voterID": "testVoter1",
+            "ballotID": "b-test5-1"
+        },
+        {
+            "voterID": "testVoter2",
+            "ballotID": "b-test5-2"
+        },
+        {
+            "voterID": "testVoter3",
+            "ballotID": "b-test5-3"
+        },
+    ]
+
     onMount(() => {
         userID = null;
     });
@@ -24,7 +44,25 @@
             return;
         }
 
+        // Validate: Any password is allowed for this POC
+        let ballotID;
+        let validated = false;
+        for (let i = 0; i < users.length; i++) {
+            if (users[i].voterID == userID) {
+                validated = true;
+                ballotID = users[i].ballotID;
+                break;
+            }
+        }
+
+        if (!validated) {
+            alert("User not found!");
+            event.preventDefault();
+            return;
+        }
+
         sessionStorage.setItem("userID", userID);
+        sessionStorage.setItem("ballotID", ballotID);
         console.log("Logging in user: ", userID);
     }
 </script>

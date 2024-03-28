@@ -2,6 +2,7 @@
 
 <script>
     import { onMount } from "svelte";
+    import axios from 'axios';
 
     import Button from "../components/Button.svelte";
     import CandidateList from "../components/CandidateList.svelte";
@@ -12,11 +13,28 @@
     let candidates = [];
     let ballotCast = false;
 
-    // TODO: function to readVote & parse into candidate array
-
-    onMount(() => {
+    onMount(async () => {
         userID = sessionStorage.getItem("userID");
+        ballotID = sessionStorage.getItem("ballotID");
+
+        
+        await fetchBallot();
     });
+
+    async function fetchBallot() {
+        try {
+            const response = await axios.post('https://dt1nck5gqd.execute-api.ap-southeast-1.amazonaws.com/dev/read-vote', {
+                VoterID: userID,
+	            BallotID: ballotID
+            });
+
+            candidates = response.data.Candidates;
+
+        } catch (error) {
+            console.error('No ballot found: ', error);
+        }
+    }
+
 </script>
 
 <main>
@@ -39,7 +57,7 @@
             {/if}
         </div>
 
-        {#if !ballotCast}
+        {#if !ballotCast && candidates.length > 0}
             <Button label="Submit Vote" />
         {/if}
     </body>
