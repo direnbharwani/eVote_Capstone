@@ -13,9 +13,6 @@ provider:
   runtime: provided.al2023    # OS-only Runtime
   architecture: arm64
 
-plugins:
-  - serverless-iam-roles-per-function
-
 package:
   individually: true
   patterns:

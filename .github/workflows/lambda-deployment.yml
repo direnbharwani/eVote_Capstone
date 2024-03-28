@@ -42,5 +42,4 @@ jobs:
         run: |
           echo "Installing Serverless"
           pnpm install serverless -g
-          pnpm install serverless-iam-roles-per-function
           ./scripts/build_and_deploy_lambdas.sh

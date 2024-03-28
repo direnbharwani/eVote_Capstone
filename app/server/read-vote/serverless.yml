@@ -2,12 +2,6 @@ READ-VOTE:
   handler: bootstrap
   timeout: ${self:custom.config.lambda.timeout}
   memorySize: ${self:custom.config.lambda.memorySize}
-  # iamRoleStatements:
-  #   - Effect: "Allow"
-  #     Action:
-  #       - dynamodb:GetItem
-  #       - dynamodb:Query
-  #     Resource:
   events:
     - http:
         path: /read-vote
