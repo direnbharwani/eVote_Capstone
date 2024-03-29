@@ -177,6 +177,7 @@ func registerIdentity(name string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error reading register response body: %v", err)
 	}
+	fmt.Println((string(responseBodyData)))
 
 	var responseBody map[string]interface{}
 	if err = json.Unmarshal(responseBodyData, &responseBody); err != nil {
