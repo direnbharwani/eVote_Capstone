@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"time"
 
@@ -19,18 +20,21 @@ import (
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var requestBody LambdaRequestBody
 	if err := json.Unmarshal([]byte(request.Body), &requestBody); err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to parse request body: %v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("failed to parse request body: %v", err))
+		return errorResponse, nil
 	}
 
 	startTime := time.Now()
 
 	ballots, err := common.ChaincodeQueryAll[chaincode.Ballot](requestBody.SignerID, os.Getenv("KALEIDO_AUTH_TOKEN"))
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
 	}
 
 	if len(ballots) == 0 {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("no ballots to count")
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, "no ballots to count")
+		return errorResponse, nil
 	}
 
 	// Filter ballots that are part of specified election
@@ -42,30 +46,35 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}
 	}
 	if len(ballotsToCount) == 0 {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("no ballots to count")
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, "no ballots to count")
+		return errorResponse, nil
 	}
 	if len(ballotsToCount[0].Candidates) == 0 {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("ballot does not have candidates")
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, "ballot does not have candidates")
+		return errorResponse, nil
 	}
 
 	// First publicKey is used for comparison against other public keys as a control measure
 	// Privat key will be used at the end for decypting the final count
 	publicKey, privateKey, err := common.DecodeKeys(ballotsToCount[0].Candidates[0].PublicKey, os.Getenv("PAILLIER_PRIVATE_KEY"))
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
 	}
 
 	// Create all candidates to count votes for
 	results, err := countBallots(ballotsToCount, publicKey)
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
 	}
 
 	// Decrypt final count and prepare response
 	for i := range results {
 		results[i].NumVotes, err = paillier.Decrypt(publicKey, privateKey, results[i].NumVotes)
 		if err != nil {
-			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decrypting final count: %v", err)
+			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("error decrypting final count: %v", err))
+			return errorResponse, nil
 		}
 	}
 
@@ -83,13 +92,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	lambdaResponseBodyData, err := json.Marshal(responseBody)
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparse response body: %v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("error stringifying response body: %v", err))
+		return errorResponse, nil
 	}
 
-	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Body:       string(lambdaResponseBodyData),
-	}, nil
+	return common.GenerateSuccessResponse(string(lambdaResponseBodyData)), nil
 }
 
 func main() {

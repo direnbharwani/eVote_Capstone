@@ -16,6 +16,5 @@ COUNT-VOTES:
             - X-Amz-Security-Token
   environment:
     PAILLIER_PRIVATE_KEY: ${env:PAILLIER_PRIVATE_KEY}
-    KALEIDO_AUTH_TOKEN: ${env:KALEIDO_AUTH_TOKEN}
   package:
     artifact: count-votes.zip
