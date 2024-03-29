@@ -163,6 +163,9 @@ func registerIdentity(name string) (string, error) {
 		return "", fmt.Errorf("error creating register request: %v", err)
 	}
 
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", os.Getenv("KALEIDO_AUTH_TOKEN"))
+
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
@@ -201,6 +204,9 @@ func enrollIdentity(name, secret string) error {
 	if err != nil {
 		return fmt.Errorf("error creating enroll request: %v", err)
 	}
+
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", os.Getenv("KALEIDO_AUTH_TOKEN"))
 
 	client := &http.Client{}
 	response, err := client.Do(request)
