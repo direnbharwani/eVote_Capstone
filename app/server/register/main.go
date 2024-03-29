@@ -146,7 +146,7 @@ func main() {
 // =============================================================================
 
 func registerIdentity(name string) (string, error) {
-	endpoint := fmt.Sprintf("%s/identites", os.Getenv("KALEIDO_REST_API_ENDPOINT"))
+	endpoint := fmt.Sprintf("%s/identities", os.Getenv("KALEIDO_REST_API_ENDPOINT"))
 
 	// Register
 
@@ -177,7 +177,7 @@ func registerIdentity(name string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error reading register response body: %v", err)
 	}
-	fmt.Println((string(responseBodyData)))
+	// fmt.Println((string(responseBodyData)))
 
 	var responseBody map[string]interface{}
 	if err = json.Unmarshal(responseBodyData, &responseBody); err != nil {
