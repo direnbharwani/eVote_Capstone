@@ -77,10 +77,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Create new entry, generate voterID, register & enroll identity & create new ballot
 	newVoterUUID, err := uuid.NewV7()
 	if err != nil {
-		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("failed to generate voter UUID: %v", err))
 		return errorResponse, nil
 	}
 	voterID := "v-" + newVoterUUID.String()
+	fmt.Printf("voterID: %s\n", voterID)
 
 	// Register and enroll voter identity
 	secret, err := registerIdentity(voterID)
@@ -96,10 +97,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Create ballot
 	newBallotUUID, err := uuid.NewV7()
 	if err != nil {
-		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("failed to generate voter UUID: %v", err))
 		return errorResponse, nil
 	}
 	ballotID := "b-" + newBallotUUID.String()
+	fmt.Printf("ballotID: %s\n", ballotID)
 
 	newBallot := chaincode.Ballot{
 		Asset:      chaincode.Asset{ID: ballotID},
@@ -175,7 +177,7 @@ func registerIdentity(name string) (string, error) {
 
 	var responseBody map[string]interface{}
 	if err = json.Unmarshal(responseBodyData, &responseBody); err != nil {
-		return "", fmt.Errorf("%v", err)
+		return "", fmt.Errorf("failed to parse register response body: %v", err)
 	}
 
 	if response.StatusCode != 200 {
@@ -215,7 +217,7 @@ func enrollIdentity(name, secret string) error {
 
 		var responseBody map[string]interface{}
 		if err = json.Unmarshal(responseBodyData, &responseBody); err != nil {
-			return fmt.Errorf("%v", err)
+			return fmt.Errorf("failed to parse register response body: %v", err)
 		}
 		return fmt.Errorf("%v", responseBody["error"])
 	}
