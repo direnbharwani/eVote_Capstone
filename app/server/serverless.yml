@@ -12,6 +12,11 @@ provider:
   region: ap-southeast-1      # Singapore
   runtime: provided.al2023    # OS-only Runtime
   architecture: arm64
+  environment:
+    KALEIDO_AUTH_TOKEN: ${env:KALEIDO_AUTH_TOKEN}
+
+plugins:
+  - serverless-iam-roles-per-function
 
 package:
   individually: true

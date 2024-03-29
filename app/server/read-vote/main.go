@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -22,24 +23,28 @@ import (
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var requestBody LambdaRequestBody
 	if err := json.Unmarshal([]byte(request.Body), &requestBody); err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to parse request body: %v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("failed to parse request body: %v", err))
+		return errorResponse, nil
 	}
 
 	// Invoke Chaincode
 	ballot, err := common.ChaincodeQuery[chaincode.Ballot](requestBody.VoterID, os.Getenv("KALEIDO_AUTH_TOKEN"), requestBody.BallotID)
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
 	}
 
 	if len(ballot.Candidates) == 0 {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error: ballot has no candidates")
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, "error: ballot has no candidates")
+		return errorResponse, nil
 	}
 
 	// Use private key in conjuction with Candidate's public key
 	// to check if candidate has been voted for on a Ballot
 	publicKey, privateKey, err := common.DecodeKeys(ballot.Candidates[0].PublicKey, os.Getenv("PAILLIER_PRIVATE_KEY"))
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("%v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
 	}
 
 	responseBody := LambdaResponseBody{BallotID: ballot.Asset.ID}
@@ -52,12 +57,14 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 		encryptedCount, ok := new(big.Int).SetString(ballot.Candidates[i].Count, 10)
 		if !ok {
-			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("failed to parse candiate count")
+			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+			return errorResponse, nil
 		}
 
 		count, err := paillier.Decrypt(publicKey, privateKey, encryptedCount)
 		if err != nil {
-			return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error decrypting candidate count: %v", err)
+			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+			return errorResponse, nil
 		}
 
 		if count.Cmp(big.NewInt(0)) == 0 {
@@ -71,18 +78,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	lambdaResponseBodyData, err := json.Marshal(responseBody)
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400}, fmt.Errorf("error unparse response body: %v", err)
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("error unparse response body: %v", err))
+		return errorResponse, nil
 	}
 
-	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Headers: map[string]string{
-			"ContentType":                  "application/json",
-			"Access-Control-Allow-Origin":  "*",
-			"Access-Control-Allow-Methods": "OPTIONS,POST,GET",
-		},
-		Body: string(lambdaResponseBodyData),
-	}, nil
+	return common.GenerateSuccessResponse(string(lambdaResponseBodyData)), nil
 }
 
 func main() {
