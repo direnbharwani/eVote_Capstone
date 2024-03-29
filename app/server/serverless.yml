@@ -13,6 +13,7 @@ provider:
   runtime: provided.al2023    # OS-only Runtime
   architecture: arm64
   environment:
+    KALEIDO_REST_API_ENDPOINT: "https://a0z8wc2w78-a0ve7t5vxf-connect.au0-aws-ws.kaleido.io"
     KALEIDO_AUTH_TOKEN: ${env:KALEIDO_AUTH_TOKEN}
 
 plugins:
@@ -26,3 +27,4 @@ package:
 functions:
   read-vote: ${file(./read-vote/serverless.yml):READ-VOTE}
   count-votes: ${file(./count-votes/serverless.yml):COUNT-VOTES}
+  register: ${file(./register/serverless.yml):REGISTER}

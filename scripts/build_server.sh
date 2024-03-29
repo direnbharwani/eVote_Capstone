@@ -19,16 +19,12 @@ rm bootstrap
 mv read-vote.zip ../read-vote.zip
 
 # Check if artifact was built from root level
-cd ../../../
-if test -f app/server/read-vote.zip; then
+
+if test -f ../read-vote.zip; then
     echo "read-vote built!"
 else
     echo "failed to build read-vote"
 fi
-
-# =============================================================================
-# Build submitVote
-# =============================================================================
 
 # =============================================================================
 # Build count-votes
@@ -36,7 +32,7 @@ fi
 
 echo "Building count-votes..."
 
-cd app/server/count-votes
+cd ../count-votes
 
 # build go binary
 GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o bootstrap -tags lambda.norpc main.go
@@ -49,24 +45,36 @@ rm bootstrap
 mv count-votes.zip ../count-votes.zip
 
 # Check if artifact was built from root level
-cd ../../../
-if test -f app/server/count-votes.zip; then
+if test -f ../count-votes.zip; then
     echo "count-votes built!"
 else
     echo "failed to build count-votes"
 fi
 
 # =============================================================================
-# Serverless Deployment
+# Build register
 # =============================================================================
 
-cd app/server
-sls config credentials --provider aws --key $AWS_ACCESS_KEY_ID --secret $AWS_SECRET_ACCESS_KEY
-sls deploy
+echo "Building register..."
 
-# =============================================================================
-# Clean Artifacts
-# =============================================================================
+cd ../register
 
-rm read-vote.zip
-rm count-votes.zip
+# build go binary
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o bootstrap -tags lambda.norpc main.go
+
+# zip as build artifact for serverless deployment
+zip register.zip bootstrap
+
+# delete built binary & move readVote.zip to root level for deployment
+rm bootstrap
+mv register.zip ../register.zip
+
+# Check if artifact was built from root level
+if test -f ../register.zip; then
+    echo "register built!"
+else
+    echo "failed to build register"
+fi
+
+# Back to root
+cd ../../../

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"reflect"
 
 	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
@@ -39,6 +40,21 @@ type ChaincodeRequestBody struct {
 // =============================================================================
 // Invocation Methods
 // =============================================================================
+
+func ChaincodeCreate[T chaincode.ITYPES](signer, authToken string, data T) error {
+	function := fmt.Sprintf("Create%s", reflect.TypeOf(data).Name())
+
+	rawData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	if _, err = invokeChaincode(Transaction, signer, authToken, function, []string{string(rawData)}); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // Queries a single object from the blockchain's world state
 // Chaincode name, channel, and init are hardcoded
@@ -100,7 +116,7 @@ func ChaincodeQueryAll[T chaincode.ITYPES](signer, authToken string) ([]T, error
 // =============================================================================
 
 func invokeChaincode(invokeType InvokeType, signer, authToken, function string, args []string) ([]byte, error) {
-	endpoint := "https://a0z8wc2w78-a0ve7t5vxf-connect.au0-aws-ws.kaleido.io"
+	endpoint := os.Getenv("KALEIDO_REST_API_ENDPOINT")
 
 	// Build chaincode request
 	chaincodeInvocationHeaders := ChaincodeInvocationHeaders{
@@ -155,7 +171,7 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 	// Parse response
 	chaincodeResponseBodyData, err := io.ReadAll(chaincodeResponse.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error chaincode reading response body: %v", err)
+		return nil, fmt.Errorf("error reading chaincode response body: %v", err)
 	}
 
 	// Check for error in response

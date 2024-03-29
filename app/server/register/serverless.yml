@@ -1,0 +1,28 @@
+REGISTER:
+  handler: bootstrap
+  timeout: ${self:custom.config.lambda.timeout}
+  memorySize: ${self:custom.config.lambda.memorySize}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:Query
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/voter-credentials"
+  events:
+    - http:
+        path: /register
+        method: post
+        cors:
+          origin: "*"
+          headers:
+            - Content-Type
+            - X-Amz-Date
+            - Authorization
+            - X-Api-Key
+            - X-Amz-Security-Token    
+  package:
+    artifact: register.zip
