@@ -5,8 +5,8 @@ package common
 // =============================================================================
 
 type VoterCredentials struct {
-	NRIC       string `json:"nric"`
-	ElectionID string `json:"electionID"`
-	VoterID    string `json:"voterID"`
-	BallotID   string `json:"ballotID"`
+	NRIC       string `dynamodbav:"nric"`
+	ElectionID string `dynamodbav:"electionID"`
+	VoterID    string `dynamodbav:"voterID"`
+	BallotID   string `dynamodbav:"ballotID"`
 }

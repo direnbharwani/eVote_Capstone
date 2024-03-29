@@ -18,7 +18,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/direnbharwani/evote-capstone/app/server/common"
-	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
 )
 
 // ======================================================================================
@@ -84,15 +83,15 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	fmt.Printf("voterID: %s\n", voterID)
 
 	// Register and enroll voter identity
-	secret, err := registerIdentity(voterID)
-	if err != nil {
-		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
-		return errorResponse, nil
-	}
-	if err = enrollIdentity(voterID, secret); err != nil {
-		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
-		return errorResponse, nil
-	}
+	// secret, err := registerIdentity(voterID)
+	// if err != nil {
+	// 	errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+	// 	return errorResponse, nil
+	// }
+	// if err = enrollIdentity(voterID, secret); err != nil {
+	// 	errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+	// 	return errorResponse, nil
+	// }
 
 	// Create ballot
 	newBallotUUID, err := uuid.NewV7()
@@ -103,16 +102,16 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	ballotID := "b-" + newBallotUUID.String()
 	fmt.Printf("ballotID: %s\n", ballotID)
 
-	newBallot := chaincode.Ballot{
-		Asset:      chaincode.Asset{ID: ballotID},
-		ElectionID: requestBody.ElectionID,
-		VoterID:    voterID,
-	}
+	// newBallot := chaincode.Ballot{
+	// 	Asset:      chaincode.Asset{ID: ballotID},
+	// 	ElectionID: requestBody.ElectionID,
+	// 	VoterID:    voterID,
+	// }
 
-	if err = common.ChaincodeCreate(voterID, os.Getenv("KALEIDO_AUTH_TOKEN"), newBallot); err != nil {
-		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
-		return errorResponse, nil
-	}
+	// if err = common.ChaincodeCreate(voterID, os.Getenv("KALEIDO_AUTH_TOKEN"), newBallot); err != nil {
+	// 	errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+	// 	return errorResponse, nil
+	// }
 
 	// Put new item in dynamoDB
 	newCredentials, err := attributevalue.MarshalMap(common.VoterCredentials{
