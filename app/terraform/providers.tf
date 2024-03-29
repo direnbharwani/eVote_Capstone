@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "se-tg-bot-terraform-state"
+    bucket         = "evote-poc-terraform-state"
     region         = "ap-southeast-1"
     key            = "state/terraform.tfstate"
     encrypt        = true
