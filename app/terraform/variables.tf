@@ -1,5 +1,5 @@
 variable "aws_region" {
-    type        = string
-    description = "Singapore"
-    default     = "ap-southeast-1"
+  type        = string
+  description = "Singapore"
+  default     = "ap-southeast-1"
 }
