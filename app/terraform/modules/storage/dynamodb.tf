@@ -14,6 +14,6 @@ resource "aws_dynamodb_table" "voter_credentials_table" {
 
   attribute {
     name = "electionID"
-    type = var.dynamodb_attribute_type_number
+    type = var.dynamodb_attribute_type_string
   }
 }
