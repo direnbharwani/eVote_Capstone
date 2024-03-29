@@ -43,10 +43,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	tableName := "voter-credentials"
 
 	// Check if item already exists.
-
+	// !!! Key names are in camelcase
 	key := map[string]types.AttributeValue{
-		"NRIC":       &types.AttributeValueMemberS{Value: requestBody.NRIC},
-		"ElectionID": &types.AttributeValueMemberS{Value: requestBody.ElectionID},
+		"nric":       &types.AttributeValueMemberS{Value: requestBody.NRIC},
+		"electionID": &types.AttributeValueMemberS{Value: requestBody.ElectionID},
 	}
 
 	result, err := dynamoDBClient.GetItem(ctx, &dynamodb.GetItemInput{
