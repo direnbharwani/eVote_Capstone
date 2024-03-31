@@ -60,6 +60,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			return errorResponse, nil
 		}
 	}
+	fmt.Println(voterCredentials)
 
 	// Invoke Chaincode
 	ballot, err := common.ChaincodeQuery[chaincode.Ballot](voterCredentials.VoterID, os.Getenv("KALEIDO_AUTH_TOKEN"), voterCredentials.BallotID)

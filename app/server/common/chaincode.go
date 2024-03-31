@@ -182,7 +182,5 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 		}
 	}
 
-	fmt.Println(string(chaincodeRequestJSONData))
-
 	return chaincodeResponseBodyData, nil
 }

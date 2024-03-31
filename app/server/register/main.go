@@ -59,6 +59,9 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		if voterCredentials.VoterID == "" || voterCredentials.BallotID == "" {
 			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%s-%s has an invalid entry!", voterCredentials.NRIC, voterCredentials.ElectionID))
 			return errorResponse, nil
+		} else {
+			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, "Entry already exists!")
+			return errorResponse, nil
 		}
 	}
 
