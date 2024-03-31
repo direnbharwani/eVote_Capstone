@@ -12,12 +12,10 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
 
 	"github.com/direnbharwani/evote-capstone/app/server/common"
+	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
 )
 
 // ======================================================================================
@@ -37,42 +35,34 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		panic("unable to load SDK config, " + err.Error())
 	}
 
-	// Create DynamoDB service client
-	dynamoDBClient := dynamodb.NewFromConfig(configuration)
-	tableName := "voter-credentials"
-
-	// Check if item already exists.
-	// !!! Key names are in camelcase
-	key := map[string]types.AttributeValue{
-		"nric":       &types.AttributeValueMemberS{Value: requestBody.NRIC},
-		"electionID": &types.AttributeValueMemberS{Value: requestBody.ElectionID},
+	voterCredentialsTable := common.DynamoDBTable{
+		TableName:    "voter-credentials",
+		PartitionKey: "nric",
+		SortKey:      "electionID",
 	}
-
-	result, err := dynamoDBClient.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: &tableName,
-		Key:       key,
-	})
-	if err != nil {
-		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("error getting item: %v", err))
+	if err = voterCredentialsTable.Init(configuration, true); err != nil {
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
 		return errorResponse, nil
 	}
 
-	// Check if item is invalid:
-	// voterID and ballotID. If either is missing, return error
-	if result.Item != nil {
-		var voterCredentials common.VoterCredentials
-		if err = attributevalue.UnmarshalMap(result.Item, &voterCredentials); err != nil {
-			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("error pasring result: %v", err))
-			return errorResponse, nil
-		}
+	voterCredentials, err := common.GetItem[common.VoterCredentials](ctx, &voterCredentialsTable, common.DynamoDBKeys{
+		PartitonKeyValue: requestBody.NRIC,
+		SortKeyValue:     requestBody.ElectionID,
+	})
+	if err != nil {
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
+	}
+	itemExists := (voterCredentials.NRIC != "" && voterCredentials.ElectionID != "")
 
+	if itemExists { // Check if valid
 		if voterCredentials.VoterID == "" || voterCredentials.BallotID == "" {
 			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%s-%s has an invalid entry!", voterCredentials.NRIC, voterCredentials.ElectionID))
 			return errorResponse, nil
 		}
 	}
 
-	// Implicit: Item does not exist.
+	// Implicit: Item does not exist
 	// Create new entry, generate voterID, register & enroll identity & create new ballot
 	newVoterUUID, err := uuid.NewV7()
 	if err != nil {
@@ -83,15 +73,15 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	fmt.Printf("voterID: %s\n", voterID)
 
 	// Register and enroll voter identity
-	// secret, err := registerIdentity(voterID)
-	// if err != nil {
-	// 	errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
-	// 	return errorResponse, nil
-	// }
-	// if err = enrollIdentity(voterID, secret); err != nil {
-	// 	errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
-	// 	return errorResponse, nil
-	// }
+	secret, err := registerIdentity(voterID)
+	if err != nil {
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
+	}
+	if err = enrollIdentity(voterID, secret); err != nil {
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
+	}
 
 	// Create ballot
 	newBallotUUID, err := uuid.NewV7()
@@ -102,33 +92,26 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	ballotID := "b-" + newBallotUUID.String()
 	fmt.Printf("ballotID: %s\n", ballotID)
 
-	// newBallot := chaincode.Ballot{
-	// 	Asset:      chaincode.Asset{ID: ballotID},
-	// 	ElectionID: requestBody.ElectionID,
-	// 	VoterID:    voterID,
-	// }
-
-	// if err = common.ChaincodeCreate(voterID, os.Getenv("KALEIDO_AUTH_TOKEN"), newBallot); err != nil {
-	// 	errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
-	// 	return errorResponse, nil
-	// }
-
-	// Put new item in dynamoDB
-	newCredentials, err := attributevalue.MarshalMap(common.VoterCredentials{
-		NRIC:       requestBody.NRIC,
+	newBallot := chaincode.Ballot{
+		Asset:      chaincode.Asset{ID: ballotID},
 		ElectionID: requestBody.ElectionID,
 		VoterID:    voterID,
-		BallotID:   ballotID,
-	})
-	if err != nil {
+	}
+
+	if err = common.ChaincodeCreate(voterID, os.Getenv("KALEIDO_AUTH_TOKEN"), newBallot); err != nil {
 		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
 		return errorResponse, nil
 	}
 
-	if _, err = dynamoDBClient.PutItem(ctx, &dynamodb.PutItemInput{
-		TableName: &tableName,
-		Item:      newCredentials,
-	}); err != nil {
+	// Put new item in dynamoDB
+	newCredentials := common.VoterCredentials{
+		NRIC:       requestBody.NRIC,
+		ElectionID: requestBody.ElectionID,
+		VoterID:    voterID,
+		BallotID:   ballotID,
+	}
+
+	if err = common.PutItem[common.VoterCredentials](ctx, &voterCredentialsTable, newCredentials); err != nil {
 		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
 		return errorResponse, nil
 	}

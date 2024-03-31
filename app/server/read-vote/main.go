@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/config"
 
 	"github.com/direnbharwani/evote-capstone/app/server/common"
 	chaincode "github.com/direnbharwani/evote-capstone/chaincode/src"
@@ -27,8 +28,41 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return errorResponse, nil
 	}
 
+	// Load default SDK configuration using Lambda's IAM role
+	configuration, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		panic("unable to load SDK config, " + err.Error())
+	}
+
+	voterCredentialsTable := common.DynamoDBTable{
+		TableName:    "voter-credentials",
+		PartitionKey: "nric",
+		SortKey:      "electionID",
+	}
+	if err = voterCredentialsTable.Init(configuration, true); err != nil {
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
+	}
+
+	voterCredentials, err := common.GetItem[common.VoterCredentials](ctx, &voterCredentialsTable, common.DynamoDBKeys{
+		PartitonKeyValue: requestBody.NRIC,
+		SortKeyValue:     requestBody.ElectionID,
+	})
+	if err != nil {
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
+		return errorResponse, nil
+	}
+	itemExists := (voterCredentials.NRIC != "" && voterCredentials.ElectionID != "")
+
+	if itemExists { // Check if valid
+		if voterCredentials.VoterID == "" || voterCredentials.BallotID == "" {
+			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%s-%s has an invalid entry!", voterCredentials.NRIC, voterCredentials.ElectionID))
+			return errorResponse, nil
+		}
+	}
+
 	// Invoke Chaincode
-	ballot, err := common.ChaincodeQuery[chaincode.Ballot](requestBody.VoterID, os.Getenv("KALEIDO_AUTH_TOKEN"), requestBody.BallotID)
+	ballot, err := common.ChaincodeQuery[chaincode.Ballot](voterCredentials.VoterID, os.Getenv("KALEIDO_AUTH_TOKEN"), voterCredentials.BallotID)
 	if err != nil {
 		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%v", err))
 		return errorResponse, nil
@@ -94,8 +128,7 @@ func main() {
 // =============================================================================
 
 type LambdaRequestBody struct {
-	VoterID    string `json:"VoterID"`
-	BallotID   string `json:"BallotID"`
+	NRIC       string `json:"NRIC"`
 	ElectionID string `json:"ElectionID"`
 }
 
