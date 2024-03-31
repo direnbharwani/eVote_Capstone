@@ -37,7 +37,7 @@ func (t *DynamoDBTable) Init(config aws.Config, sortKeyRequired bool) error {
 
 func (t *DynamoDBTable) CheckKeys() error {
 	if t.TableName == "" {
-		return fmt.Errorf("TableName is not set!")
+		return fmt.Errorf("TableName is not set")
 	}
 
 	if t.PartitionKey == "" {
@@ -57,7 +57,7 @@ func GetItem[T DBTYPES](ctx context.Context, table *DynamoDBTable, keys DynamoDB
 	var result T
 
 	if table.client == nil {
-		return emptyObject, fmt.Errorf("%s has not been initialised!", reflect.TypeOf(*table).Name())
+		return emptyObject, fmt.Errorf("%s has not been initialised", reflect.TypeOf(*table).Name())
 	}
 
 	if err := table.CheckKeys(); err != nil {
@@ -70,6 +70,7 @@ func GetItem[T DBTYPES](ctx context.Context, table *DynamoDBTable, keys DynamoDB
 	if table.sortKeyRequired {
 		key[table.SortKey] = &types.AttributeValueMemberS{Value: keys.SortKeyValue}
 	}
+	fmt.Println(key)
 
 	getItemResult, err := table.client.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: &table.TableName,
@@ -79,13 +80,12 @@ func GetItem[T DBTYPES](ctx context.Context, table *DynamoDBTable, keys DynamoDB
 		return emptyObject, fmt.Errorf("error getting item: %v", err)
 	}
 
-	// Check if item is invalid:
 	if getItemResult.Item == nil {
 		return emptyObject, nil
 	}
 
 	if err = attributevalue.UnmarshalMap(getItemResult.Item, &result); err != nil {
-		return emptyObject, fmt.Errorf("error pasring result: %v", err)
+		return emptyObject, fmt.Errorf("error parsing result: %v", err)
 	}
 
 	return result, nil
@@ -93,7 +93,7 @@ func GetItem[T DBTYPES](ctx context.Context, table *DynamoDBTable, keys DynamoDB
 
 func PutItem[T DBTYPES](ctx context.Context, table *DynamoDBTable, newItem T) error {
 	if table.client == nil {
-		return fmt.Errorf("%s has not been initialised!", reflect.TypeOf(*table).Name())
+		return fmt.Errorf("%s has not been initialised", reflect.TypeOf(*table).Name())
 	}
 
 	newItemData, err := attributevalue.MarshalMap(newItem)

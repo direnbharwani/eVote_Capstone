@@ -59,8 +59,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("%s-%s has an invalid entry!", voterCredentials.NRIC, voterCredentials.ElectionID))
 			return errorResponse, nil
 		}
+	} else {
+		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, "Item not found")
+		return errorResponse, nil
 	}
-	fmt.Println(voterCredentials)
 
 	// Invoke Chaincode
 	ballot, err := common.ChaincodeQuery[chaincode.Ballot](voterCredentials.VoterID, os.Getenv("KALEIDO_AUTH_TOKEN"), voterCredentials.BallotID)
