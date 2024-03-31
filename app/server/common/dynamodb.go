@@ -65,7 +65,7 @@ func GetItem[T DBTYPES](ctx context.Context, table *DynamoDBTable, keys DynamoDB
 	}
 
 	key := map[string]types.AttributeValue{
-		table.PartitionKey: &types.AttributeValueMemberS{Value: table.PartitionKey},
+		table.PartitionKey: &types.AttributeValueMemberS{Value: keys.PartitonKeyValue},
 	}
 	if table.sortKeyRequired {
 		key[table.SortKey] = &types.AttributeValueMemberS{Value: keys.SortKeyValue}
