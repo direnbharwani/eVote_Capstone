@@ -25,7 +25,11 @@ func GenerateErrorResponse(statusCode int, message string) events.APIGatewayProx
 
 	errorResponse := events.APIGatewayProxyResponse{
 		StatusCode: statusCode,
-		Headers:    map[string]string{"Content-Type": "application/json"},
+		Headers: map[string]string{
+			"ContentType":                  "application/json",
+			"Access-Control-Allow-Origin":  "*",
+			"Access-Control-Allow-Methods": "OPTIONS,POST,GET",
+		},
 	}
 
 	errorBody, err := json.Marshal(ErrorBody{message})
