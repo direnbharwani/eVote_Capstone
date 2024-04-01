@@ -38,5 +38,5 @@ func main() {
 type LambdaRequestBody struct {
 	VoterID     string `json:"VoterID"`
 	BallotID    string `json:"BallotID"`
-	CandidateID string `json:"ElectionID"`
+	CandidateID string `json:"CandidateID"`
 }
