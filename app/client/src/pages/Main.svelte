@@ -4,16 +4,10 @@
   import { onMount } from "svelte";
   import axios from "axios";
   import { Circle } from "svelte-loading-spinners";
-  import { navigate } from "svelte-routing";
+  import { toast, SvelteToast } from '@zerodevx/svelte-toast';
 
   import Button from "../components/Button.svelte";
   import Ballot from "../layouts/Ballot.svelte";
-  import {
-    showAlert,
-    alertMessage,
-    shouldRedicrect,
-    setAlert,
-  } from "../stores/alertStore";
 
   let loading = true;
 
@@ -82,32 +76,45 @@
   };
 
   const submitVote = async () => {
+    loading = true;
+
     try {
       console.log(selectedCandidate);
 
       await axios.post(
         "https://dt1nck5gqd.execute-api.ap-southeast-1.amazonaws.com/dev/submit-vote",
         {
-          VoterID: userID,
+          VoterID: voterID,
           BallotID: ballotID,
-          CandidateID: "",
+          CandidateID: selectedCandidate,
         },
       );
 
-      alert("Thank you for submitting your vote!");
+      toast.push('Success!', {
+        theme: {
+          '--toastColor': 'mintcream',
+          '--toastBackground': 'rgba(72,187,120,0.9)',
+          '--toastBarBackground': '#2F855A'
+        }
+      })
+
+      await fetchBallot()
     } catch (error) {
-      alert("Submission failed, please try again!");
+      toast.push('Failed to submit vote', {
+        theme: {
+          '--toastColor': 'white',
+          '--toastBackground': '#A01227',
+          '--toastBarBackground': '#76212E'
+        }
+      })
     }
+
+    loading = false;
   };
 </script>
 
 <main>
-  {#if $showAlert}
-    <div ckass="alert">
-      <p>{$alertMessage}</p>
-      <button on:click={() => showAlert.set(false)}>Close</button>
-    </div>
-  {/if}
+  <SvelteToast />
 
   <body>
     {#if loading}

@@ -25,6 +25,9 @@ devDependencies:
   '@rollup/plugin-terser':
     specifier: ^0.4.0
     version: 0.4.4(rollup@3.29.4)
+  '@zerodevx/svelte-toast':
+    specifier: ^0.9.5
+    version: 0.9.5(svelte@3.59.2)
   rollup:
     specifier: ^3.15.0
     version: 3.29.4
@@ -167,6 +170,14 @@ packages:
 
   /@types/resolve@1.20.2:
     resolution: {integrity: sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==}
+    dev: true
+
+  /@zerodevx/svelte-toast@0.9.5(svelte@3.59.2):
+    resolution: {integrity: sha512-JLeB/oRdJfT+dz9A5bgd3Z7TuQnBQbeUtXrGIrNWMGqWbabpepBF2KxtWVhL2qtxpRqhae2f6NAOzH7xs4jUSw==}
+    peerDependencies:
+      svelte: ^3.57.0 || ^4.0.0
+    dependencies:
+      svelte: 3.59.2
     dev: true
 
   /acorn@8.11.3:
