@@ -160,7 +160,6 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 		return nil, fmt.Errorf("failed to prepare chaincode request body: %v", err)
 	}
 
-	fmt.Println(endpoint)
 	fmt.Println(string(chaincodeRequestJSONData))
 
 	chaincodeRequest, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(chaincodeRequestJSONData))
@@ -190,8 +189,10 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 	if chaincodeResponse.StatusCode != 200 {
 		var responseBody map[string]interface{}
 		if err = json.Unmarshal(chaincodeResponseBodyData, &responseBody); err != nil {
-			return nil, fmt.Errorf("%v", responseBody["error"])
+			return nil, fmt.Errorf("failed to parse chaincode error response body: %v", err)
 		}
+
+		return nil, fmt.Errorf("%v", responseBody["error"])
 	}
 
 	return chaincodeResponseBodyData, nil
