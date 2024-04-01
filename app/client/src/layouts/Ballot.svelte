@@ -7,6 +7,7 @@
 
     export let candidates = [];
     export let ballotCast;
+    export let selectedCandidate;
 </script>
 
 <div id="ballot-paper">
@@ -22,7 +23,7 @@
     </div>
 
     {#if candidates.length > 0}
-        <CandidateList {candidates} bind:ballotCast />
+        <CandidateList {candidates} bind:ballotCast bind:selectedCandidate/>
     {:else}
         <h4 align="center">No Candidates Found!</h4>
     {/if}

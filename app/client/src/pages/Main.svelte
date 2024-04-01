@@ -4,9 +4,16 @@
   import { onMount } from "svelte";
   import axios from "axios";
   import { Circle } from "svelte-loading-spinners";
+  import { navigate } from "svelte-routing";
 
   import Button from "../components/Button.svelte";
   import Ballot from "../layouts/Ballot.svelte";
+  import {
+    showAlert,
+    alertMessage,
+    shouldRedicrect,
+    setAlert,
+  } from "../stores/alertStore";
 
   let loading = true;
 
@@ -18,7 +25,10 @@
   let ballotID = "";
 
   let candidates = [];
+  let selectedCandidate;
   let ballotCast = false;
+
+  let redirect = false;
 
   onMount(() => {
     userID = sessionStorage.getItem("userID");
@@ -27,7 +37,7 @@
     fetchBallot();
   });
 
-  async function fetchBallot() {
+  const fetchBallot = async () => {
     loading = true;
 
     try {
@@ -49,13 +59,13 @@
     }
 
     loading = false;
-  }
+  };
 
-  async function register() {
+  const register = async () => {
     loading = true;
 
     try {
-      const response = await axios.post(
+      await axios.post(
         "https://dt1nck5gqd.execute-api.ap-southeast-1.amazonaws.com/dev/register",
         {
           NRIC: userID,
@@ -69,18 +79,50 @@
     }
 
     loading = false;
-  }
+  };
+
+  const submitVote = async () => {
+    try {
+      console.log(selectedCandidate);
+
+      await axios.post(
+        "https://dt1nck5gqd.execute-api.ap-southeast-1.amazonaws.com/dev/submit-vote",
+        {
+          VoterID: userID,
+          BallotID: ballotID,
+          CandidateID: "",
+        },
+      );
+
+      alert("Thank you for submitting your vote!");
+    } catch (error) {
+      alert("Submission failed, please try again!");
+    }
+  };
 </script>
 
 <main>
+  {#if $showAlert}
+    <div ckass="alert">
+      <p>{$alertMessage}</p>
+      <button on:click={() => showAlert.set(false)}>Close</button>
+    </div>
+  {/if}
+
   <body>
     {#if loading}
       <Circle size="60" color="#a01227" unit="px" duration="1s" />
     {:else if registered}
-      <Ballot bind:voterID bind:ballotID bind:candidates bind:ballotCast />
+      <Ballot
+        bind:voterID
+        bind:ballotID
+        bind:candidates
+        bind:ballotCast
+        bind:selectedCandidate
+      />
 
       {#if !ballotCast && candidates.length > 0}
-          <Button label="Submit Vote" />
+        <Button label="Submit Vote" onClick={submitVote} />
       {/if}
     {:else}
       <h2 align="center">
