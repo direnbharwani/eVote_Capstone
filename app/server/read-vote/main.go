@@ -84,7 +84,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return errorResponse, nil
 	}
 
-	responseBody := LambdaResponseBody{BallotID: ballot.Asset.ID}
+	responseBody := LambdaResponseBody{
+		VoterID:  voterCredentials.VoterID,
+		BallotID: ballot.Asset.ID,
+	}
 
 	for i := range ballot.Candidates {
 		decryptedCandidate := LambdaResponseCandidate{
@@ -136,6 +139,7 @@ type LambdaRequestBody struct {
 }
 
 type LambdaResponseBody struct {
+	VoterID    string                    `json:"VoterID"`
 	BallotID   string                    `json:"BallotID"`
 	Candidates []LambdaResponseCandidate `json:"Candidates"`
 }
