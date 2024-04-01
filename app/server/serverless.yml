@@ -28,3 +28,4 @@ functions:
   read-vote: ${file(./read-vote/serverless.yml):READ-VOTE}
   count-votes: ${file(./count-votes/serverless.yml):COUNT-VOTES}
   register: ${file(./register/serverless.yml):REGISTER}
+  submit-vote: ${file(./submit-vote/serverless.yml):SUBMIT-VOTE}

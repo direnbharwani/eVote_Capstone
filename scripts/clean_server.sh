@@ -42,5 +42,17 @@ else
     echo "successfully removed register.zip!"
 fi
 
+# =============================================================================
+# Submit Vote
+# =============================================================================
+
+rm submit-vote.zip
+
+if test -f submit-vote.zip; then
+    echo "failed to remove submit-vote.zip"
+else
+    echo "successfully removed submit-vote.zip!"
+fi
+
 # Back to root
 cd ../../../

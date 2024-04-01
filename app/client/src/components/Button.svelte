@@ -6,7 +6,7 @@
     export let label = "Button";
     export let type = "button";
     export let onClick;
-    export let linkTo = "/";
+    export let linkTo;
 
     function handleClick() {
         if (onClick) {
@@ -15,14 +15,19 @@
     }
 </script>
 
-<Link to={linkTo}>
+{#if linkTo == null || linkTo == ""}
     <button {type} on:click={handleClick}>
         {label}
     </button>
-</Link>
+{:else}
+    <Link to={linkTo}>
+        <button {type} on:click={handleClick}>
+            {label}
+        </button>
+    </Link>
+{/if}
 
 <style>
-    /* Add your button styles here */
     button {
         width: auto;
         padding: 20px;

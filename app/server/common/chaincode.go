@@ -111,6 +111,16 @@ func ChaincodeQueryAll[T chaincode.ITYPES](signer, authToken string) ([]T, error
 	return chaincodeResponseBody.Result, nil
 }
 
+func ChaincodeCastVote(signer, authToken, ballotID, candidateID string) error {
+	args := []string{signer, ballotID, candidateID}
+
+	if _, err := invokeChaincode(Transaction, signer, authToken, "CastVote", args); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================

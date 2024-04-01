@@ -1,0 +1,18 @@
+SUBMIT-VOTE:
+  handler: bootstrap
+  timeout: ${self:custom.config.lambda.timeout}
+  memorySize: ${self:custom.config.lambda.memorySize}
+  events:
+    - http:
+        path: /submit-vote
+        method: post
+        cors:
+          origin: "*"
+          headers:
+            - Content-Type
+            - X-Amz-Date
+            - Authorization
+            - X-Api-Key
+            - X-Amz-Security-Token
+  package:
+    artifact: submit-vote.zip
