@@ -112,9 +112,10 @@ func ChaincodeQueryAll[T chaincode.ITYPES](signer, authToken string) ([]T, error
 }
 
 func ChaincodeCastVote(signer, authToken, ballotID, candidateID string) error {
+	function := "CastVote"
 	args := []string{signer, ballotID, candidateID}
 
-	if _, err := invokeChaincode(Transaction, signer, authToken, "CastVote", args); err != nil {
+	if _, err := invokeChaincode(Transaction, signer, authToken, function, args); err != nil {
 		return err
 	}
 
@@ -183,6 +184,7 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 	if err != nil {
 		return nil, fmt.Errorf("error reading chaincode response body: %v", err)
 	}
+	fmt.Println(string(chaincodeResponseBodyData))
 
 	// Check for error in response
 	if chaincodeResponse.StatusCode != 200 {

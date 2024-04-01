@@ -19,7 +19,8 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return errorResponse, nil
 	}
 
-	if err := common.ChaincodeCastVote(requestBody.VoterID, os.Getenv("KALEIDO_AUTH_TOKEN"), requestBody.BallotID, requestBody.CandidateID); err != nil {
+	err := common.ChaincodeCastVote(requestBody.VoterID, os.Getenv("KALEIDO_AUTH_TOKEN"), requestBody.BallotID, requestBody.CandidateID)
+	if err != nil {
 		errorResponse := common.GenerateErrorResponse(http.StatusBadRequest, fmt.Sprintf("Unable to cast vote: %v", err))
 		return errorResponse, nil
 	}
