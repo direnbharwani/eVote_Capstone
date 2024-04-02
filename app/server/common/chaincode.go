@@ -194,7 +194,7 @@ func invokeChaincode(invokeType InvokeType, signer, authToken, function string, 
 	if err != nil {
 		return nil, fmt.Errorf("error reading chaincode response body: %v", err)
 	}
-	fmt.Printf("%d: %s", chaincodeResponse.StatusCode, string(chaincodeResponseBodyData))
+	// fmt.Printf("%d: %s", chaincodeResponse.StatusCode, string(chaincodeResponseBodyData))
 
 	// Check for error in response
 	if chaincodeResponse.StatusCode != 200 {
