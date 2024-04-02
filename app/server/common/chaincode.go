@@ -122,6 +122,17 @@ func ChaincodeCastVote(signer, authToken, ballotID, candidateID string) error {
 	return nil
 }
 
+func ChaincodeSync(signer, authToken, electionID string) error {
+	function := "SyncElectionAndCandidates"
+	args := []string{electionID}
+
+	if _, err := invokeChaincode(Transaction, signer, authToken, function, args); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================

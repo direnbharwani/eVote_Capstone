@@ -1,0 +1,20 @@
+CREATE-ELECTION:
+  handler: bootstrap
+  timeout: ${self:custom.config.lambda.timeout}
+  memorySize: ${self:custom.config.lambda.memorySize}
+  events:
+    - http:
+        path: /create-election
+        method: post
+        cors:
+          origin: "*"
+          headers:
+            - Content-Type
+            - X-Amz-Date
+            - Authorization
+            - X-Api-Key
+            - X-Amz-Security-Token
+  environment:
+    PAILLIER_PUBLIC_KEY: "eyJOIjoxMDA5ODc4ODk1NjcwMjc2NjY5OTQzMzg2Njk3MjUzNDA1ODMxNjE2NDY3MjMwODgyNDg5MjIyMzI4ODc4NjI3NDE4Nzg2MDExODQ3MDcsIk5TcXVhcmUiOjEwMTk4NTUzODM5MjAyMTc1NTEwMjI2ODQ5NTUwMzAzMzM3ODAzNTY2MTUwNjE4NTE0NDY0NTM1NTk1NDEwNjE0MzQ3NzIxNjU5NjgyNjY2ODE1NTExMTIzMzgyNzcxMzczMjE5NzA4OTYzMzQwOTcxODY2NzYxNjM4NzE4NDA5MDA2MDE5NTQ4NjQ1NTQyNTQzOTMwNjc1ODQ5LCJHIjoxMDA5ODc4ODk1NjcwMjc2NjY5OTQzMzg2Njk3MjUzNDA1ODMxNjE2NDY3MjMwODgyNDg5MjIyMzI4ODc4NjI3NDE4Nzg2MDExODQ3MDgsIkxlbmd0aCI6MTI4fQ=="
+  package:
+    artifact: create-election.zip

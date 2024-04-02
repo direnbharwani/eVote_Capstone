@@ -51,6 +51,18 @@ else
 fi
 
 # =============================================================================
+# create-election
+# =============================================================================
+
+rm create-election.zip
+
+if test -f create-election.zip; then
+    echo "failed to remove create-election.zip"
+else
+    echo "successfully removed create-election.zip!"
+fi
+
+# =============================================================================
 # get-election
 # =============================================================================
 
