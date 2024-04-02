@@ -29,4 +29,5 @@ functions:
   count-votes: ${file(./count-votes/serverless.yml):COUNT-VOTES}
   register: ${file(./register/serverless.yml):REGISTER}
   submit-vote: ${file(./submit-vote/serverless.yml):SUBMIT-VOTE}
+  create-election: ${file(./create-election/serverless.yml):CREATE-ELECTION}
   get-election: ${file(./get-election/serverless.yml):GET-ELECTION}
