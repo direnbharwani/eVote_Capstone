@@ -13,7 +13,6 @@
         },
         { label: "# of Candidates", type: "number", value: "" },
     ]);
-    let inputValues = writable([]);
 
     let electionName;
     let numCandidates;

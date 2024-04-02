@@ -9,7 +9,6 @@
     let inputConfigs = writable([
         { label: "Election ID", type: "text", value: "" },
     ]);
-    let inputValues = writable([]);
 
     let electionID;
     const unsubscribe = inputConfigs.subscribe((values) => {

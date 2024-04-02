@@ -11,8 +11,7 @@
     { label: "Login ID", type: "text", value: "", placeholder: "S9876543A" },
     { label: "Password", type: "password", value: "" },
   ]);
-  let inputValues = writable([]);
-
+  
   let userID;
   let password; // Used for validation since html does not enforce min and max lengths
 
@@ -34,7 +33,9 @@
   function handleLogin() {
     // Handle admin
     if (userID === "admin") {
+      event.preventDefault();
       navigate("/admin");
+      return;
     } 
 
     if (userID == null || userID.length < 6) {
