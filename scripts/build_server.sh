@@ -101,5 +101,32 @@ else
     echo "failed to build submit-vote"
 fi
 
+# =============================================================================
+# Build get-election
+# =============================================================================
+
+echo "Building get-election..."
+
+cd ../get-election
+
+# build go binary
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o bootstrap -tags lambda.norpc main.go
+
+# zip as build artifact for serverless deployment
+zip get-election.zip bootstrap
+
+# delete built binary & move readVote.zip to root level for deployment
+rm bootstrap
+mv get-election.zip ../get-election.zip
+
+# Check if artifact was built from root level
+if test -f ../get-election.zip; then
+    echo "get-election built!"
+else
+    echo "failed to build get-election"
+fi
+
+
+# =============================================================================
 # Back to root
 cd ../../../

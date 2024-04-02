@@ -1,0 +1,18 @@
+GET-ELECTION:
+  handler: bootstrap
+  timeout: ${self:custom.config.lambda.timeout}
+  memorySize: ${self:custom.config.lambda.memorySize}
+  events:
+    - http:
+        path: /get-election/{qualifier}
+        method: get
+        cors:
+          origin: "*"
+          headers:
+            - Content-Type
+            - X-Amz-Date
+            - Authorization
+            - X-Api-Key
+            - X-Amz-Security-Token
+  package:
+    artifact: get-election.zip
