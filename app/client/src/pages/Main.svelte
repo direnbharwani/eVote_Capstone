@@ -2,9 +2,10 @@
 
 <script>
   import { onMount } from "svelte";
+  import { navigate } from "svelte-routing";
   import axios from "axios";
   import { Circle } from "svelte-loading-spinners";
-  import { toast, SvelteToast } from '@zerodevx/svelte-toast';
+  import { toast, SvelteToast } from "@zerodevx/svelte-toast";
 
   import Button from "../components/Button.svelte";
   import Ballot from "../layouts/Ballot.svelte";
@@ -12,7 +13,7 @@
   let loading = true;
 
   let userID = "";
-  let activeElection = JSON.parse(localStorage.getItem("activeElection"));
+  let activeElection = null;
   let registered = false;
 
   let voterID = "";
@@ -22,11 +23,24 @@
   let selectedCandidate;
   let ballotCast = false;
 
-  let redirect = false;
+  let activeElectionExists = false;
 
   onMount(() => {
     userID = sessionStorage.getItem("userID");
     document.title = "eVote Main";
+
+    let activeElectionData = localStorage.getItem("activeElection");
+    if (activeElectionData === null) {
+      return;
+    }
+
+    activeElection = JSON.parse(activeElectionData);
+    activeElectionExists = true;
+
+    if (activeElection.ElectionID == null || activeElection.ElectionID === "") {
+      activeElectionExists = false;
+      return;
+    }
 
     fetchBallot();
   });
@@ -90,23 +104,23 @@
         },
       );
 
-      toast.push('Success!', {
+      toast.push("Success!", {
         theme: {
-          '--toastColor': 'mintcream',
-          '--toastBackground': 'rgba(72,187,120,0.9)',
-          '--toastBarBackground': '#2F855A'
-        }
-      })
+          "--toastColor": "mintcream",
+          "--toastBackground": "rgba(72,187,120,0.9)",
+          "--toastBarBackground": "#2F855A",
+        },
+      });
 
-      await fetchBallot()
+      await fetchBallot();
     } catch (error) {
-      toast.push('Failed to submit vote', {
+      toast.push("Failed to submit vote", {
         theme: {
-          '--toastColor': 'white',
-          '--toastBackground': '#A01227',
-          '--toastBarBackground': '#76212E'
-        }
-      })
+          "--toastColor": "white",
+          "--toastBackground": "#A01227",
+          "--toastBarBackground": "#76212E",
+        },
+      });
     }
 
     loading = false;
@@ -131,11 +145,15 @@
       {#if !ballotCast && candidates.length > 0}
         <Button label="Submit Vote" onClick={submitVote} />
       {/if}
-    {:else}
+    {:else if activeElectionExists}
       <h2 align="center">
         Register to cast your vote for {activeElection.Name}!
       </h2>
       <Button label="Register" onClick={register} />
+    {:else}
+      <h2 align="center">
+        No active election set!
+      </h2>
     {/if}
   </body>
 </main>

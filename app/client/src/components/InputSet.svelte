@@ -23,9 +23,16 @@
                     class="input-box"
                     id={`input-text-box-${index}`}
                 />
-            {:else}
+            {:else if config.type === "password"}
                 <input
                     type="password"
+                    bind:value={config.value}
+                    class="input-box"
+                    id={`input-text-box-${index}`}
+                />
+            {:else if config.type === "datetime-local"}
+                <input
+                    type="datetime-local"
                     bind:value={config.value}
                     class="input-box"
                     id={`input-text-box-${index}`}

@@ -3,6 +3,9 @@
 <script>
     import { onDestroy } from "svelte";
     import { writable } from "svelte/store";
+    import { Circle } from "svelte-loading-spinners";
+    import axios from "axios";
+
     import Button from "../components/Button.svelte";
     import InputSet from "../components/InputSet.svelte";
 
@@ -20,42 +23,58 @@
         unsubscribe();
     });
 
-    let activeElection;
+    let activeElection = JSON.parse(localStorage.getItem("activeElection"));
 
-    const setActiveElection = async() => {
-        // Assert electionID and electionNAme is valid
+    let loading = false;
+    const setActiveElection = async () => {
+        // Assert electionID is valid
         if (electionID == null || electionID === "") {
             alert("Election ID is invalid!");
             return;
         }
 
-        // localStorage.setItem(
-        //     "activeElection",
-        //     JSON.stringify({
-        //         ElectionID: "e-test5",
-        //         Name: "TestElection5",
-        //     }),
-        // );
+        loading = true;
 
+        try {
+            const response = await axios.get(
+                `https://dt1nck5gqd.execute-api.ap-southeast-1.amazonaws.com/dev/get-election/${electionID}`,
+            );
+
+            activeElection = {
+                ElectionID: electionID,
+                Name: response.data.Name,
+            };
+
+            localStorage.setItem("activeElection", JSON.stringify(activeElection));
+        } catch (error) {
+            console.error(error);
+            alert(error);
+        }
+
+        loading = false;
         alert(`${electionID} has been set as the active election`);
     };
 </script>
 
-<h4 align="center">Active Election:</h4>
-{#if activeElection != null}
-    <div id="active-election">
-        {#each Object.keys(activeElection) as key}
-            <div class="item">
-                <code>{key}: {activeElection[key]}</code>
-            </div>
-        {/each}
-    </div>
+{#if loading}
+    <Circle size="60" color="#a01227" unit="px" duration="1s" />
 {:else}
-    <code>null</code>
-{/if}
+    <h4 align="center">Active Election:</h4>
+    {#if activeElection != null}
+        <div id="active-election">
+            {#each Object.keys(activeElection) as key}
+                <div class="item">
+                    <code>{key}: {activeElection[key]}</code>
+                </div>
+            {/each}
+        </div>
+    {:else}
+        <code>null</code>
+    {/if}
 
-<InputSet bind:inputConfigs />
-<Button label="Set" onClick={setActiveElection} />
+    <InputSet bind:inputConfigs />
+    <Button label="Set" onClick={setActiveElection} />
+{/if}
 
 <style>
     #active-election {
