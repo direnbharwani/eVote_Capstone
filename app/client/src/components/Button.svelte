@@ -28,6 +28,13 @@
 {/if}
 
 <style>
+    @font-face {
+        font-family: Josefin Sans;
+        src: url("/fonts/JosefinSans-VariableFont_wght.ttf");
+        font-weight: normal;
+        font-style: normal;
+    }
+
     button {
         width: auto;
         padding: 20px;

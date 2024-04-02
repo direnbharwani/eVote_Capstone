@@ -1,4 +1,4 @@
-<!-- src/components/Button.svelte -->
+<!-- src/pages/Main.svelte -->
 
 <script>
   import { onMount } from "svelte";

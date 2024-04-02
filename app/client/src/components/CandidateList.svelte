@@ -45,6 +45,13 @@
 </div>
 
 <style>
+  @font-face {
+    font-family: Tauri;
+    src: url("/fonts/Tauri-Regular.ttf");
+    font-weight: normal;
+    font-style: normal;
+  }
+
   #radio-buttons {
     display: flex;
     flex-direction: column;

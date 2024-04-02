@@ -1,3 +1,5 @@
+<!-- src/layouts/Ballot.svelte -->
+
 <script>
     import Button from "../components/Button.svelte";
     import CandidateList from "../components/CandidateList.svelte";
