@@ -31,6 +31,13 @@
 </section>
 
 <style>
+    @font-face {
+        font-family: Tauri;
+        src: url("/fonts/Tauri-Regular.ttf");
+        font-weight: normal;
+        font-style: normal;
+    }
+
     /* Adjust the bar width based on NumVotes */
     .bar-graph .bar {
         background-color: #a01227;
@@ -72,6 +79,7 @@
     }
 
     .bar-graph-horizontal .candidate-name {
+        font-family: Tauri;
         display: block;
         -webkit-animation: fade-in-text 2.2s 0.1s forwards;
         -moz-animation: fade-in-text 2.2s 0.1s forwards;
