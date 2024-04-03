@@ -117,8 +117,8 @@
       toast.push("Failed to submit vote", {
         theme: {
           "--toastColor": "white",
-          "--toastBackground": "#A01227",
-          "--toastBarBackground": "#76212E",
+          "--toastBackground": "#ed1a3b",
+          "--toastBarBackground": "#A01227",
         },
       });
     }
@@ -151,9 +151,7 @@
       </h2>
       <Button label="Register" onClick={register} />
     {:else}
-      <h2 align="center">
-        No active election set!
-      </h2>
+      <h2 align="center">No active election set!</h2>
     {/if}
   </body>
 </main>
