@@ -23,7 +23,12 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return errorResponse, nil
 	}
 
-	lambdaResponseBodyData, err := json.Marshal(election)
+	lambdaResponseBody := LambdaResponseBody{
+		Election: election,
+		IsActive: election.IsActive(),
+	}
+
+	lambdaResponseBodyData, err := json.Marshal(lambdaResponseBody)
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}
@@ -33,4 +38,13 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 
 func main() {
 	lambda.Start(handler)
+}
+
+// =============================================================================
+// API Types
+// =============================================================================
+
+type LambdaResponseBody struct {
+	Election chaincode.Election `json:"Election"`
+	IsActive bool               `json:"isActive`
 }
