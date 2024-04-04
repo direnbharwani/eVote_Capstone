@@ -23,31 +23,46 @@
   let selectedCandidate;
   let ballotCast = false;
 
-  let activeElectionExists = false;
+  let isElectionActive = false;
 
-  onMount(() => {
+  onMount(async () => {
     userID = sessionStorage.getItem("userID");
-    document.title = "eVote Main";
+    document.title = "eVote POC Main";
 
     let activeElectionData = localStorage.getItem("activeElection");
     if (activeElectionData === null) {
+      console.error("No active election in local storage!");
       return;
     }
 
     activeElection = JSON.parse(activeElectionData);
-    activeElectionExists = true;
-
     if (activeElection.ElectionID == null || activeElection.ElectionID === "") {
-      activeElectionExists = false;
+      console.error("Active election in invalid!");
       return;
     }
 
-    fetchBallot();
+    loading = true;
+
+    // Check if election is active
+    try {
+      const response = await axios.get(
+        `https://dt1nck5gqd.execute-api.ap-southeast-1.amazonaws.com/dev/get-election/${activeElection.ElectionID}`,
+      );
+
+      console.log(response.data);
+      isElectionActive = response.data.IsActive;
+
+      if (isElectionActive) {
+        await fetchBallot();
+      }
+    } catch (error) {
+      console.error(`No record of election ${activeElection.ElectionID}: `, error);
+    }
+
+    loading = false;
   });
 
   const fetchBallot = async () => {
-    loading = true;
-
     try {
       const response = await axios.post(
         "https://dt1nck5gqd.execute-api.ap-southeast-1.amazonaws.com/dev/read-vote",
@@ -65,8 +80,6 @@
     } catch (error) {
       console.error("No record found: ", error);
     }
-
-    loading = false;
   };
 
   const register = async () => {
@@ -133,25 +146,28 @@
   <body>
     {#if loading}
       <Circle size="60" color="#a01227" unit="px" duration="1s" />
-    {:else if registered}
-      <Ballot
-        bind:voterID
-        bind:ballotID
-        bind:candidates
-        bind:ballotCast
-        bind:selectedCandidate
-      />
+    {:else if isElectionActive}
+      {#if registered}
+        <Ballot
+          bind:voterID
+          bind:ballotID
+          bind:candidates
+          bind:ballotCast
+          bind:selectedCandidate
+        />
 
-      {#if !ballotCast && candidates.length > 0}
-        <Button label="Submit Vote" onClick={submitVote} />
+        {#if !ballotCast && candidates.length > 0}
+          <Button label="Submit Vote" onClick={submitVote} />
+        {/if}
+      {:else}
+        <h2 align="center">
+          Register to cast your vote for {activeElection.Name}!
+        </h2>
+        <Button label="Register" onClick={register} />
       {/if}
-    {:else if activeElectionExists}
-      <h2 align="center">
-        Register to cast your vote for {activeElection.Name}!
-      </h2>
-      <Button label="Register" onClick={register} />
     {:else}
-      <h2 align="center">No active election set!</h2>
+      <h2 align="center">Election {activeElection.Name} is not active right now!</h2>
+      <Button label="Back" linkTo="/" />
     {/if}
   </body>
 </main>

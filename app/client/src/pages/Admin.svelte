@@ -1,11 +1,17 @@
 <!-- src/pages/Admin.svelte -->
 
 <script>
+  import { onMount } from "svelte";
+
   import CreateElection from "../layouts/CreateElection.svelte";
   import SetElection from "../layouts/SetActiveElection.svelte";
   import CountVotes from "../layouts/CountVotes.svelte";
 
   export let layout = 0;
+
+  onMount(() => {
+    document.title = "eVote POC Admin";
+  });
 </script>
 
 <main>
